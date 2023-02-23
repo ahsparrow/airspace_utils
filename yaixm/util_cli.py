@@ -98,6 +98,8 @@ def release(args):
     # Add notes
     if args.note:
         header['note'] = args.note.read()
+    else:
+        header['note'] = open(os.path.join(args.yaixm_dir, "release.txt")).read()
     out.update({'release': header})
 
     # Get Git commit
