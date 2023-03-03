@@ -25,9 +25,9 @@ import sys
 import tempfile
 
 from pygeodesy.ellipsoidalVincenty import LatLon
-import yaixm
 import yaml
 
+from .helpers import ordered_map_representer, parse_deg
 from .obstacle import make_obstacles
 
 # Convert obstacle data XLS spreadsheet from AIS to YAXIM format
@@ -53,13 +53,13 @@ def convert_obstacle(args):
         obstacles = make_obstacles(open(csv_name), args.names)
 
     # Write to YAML file
-    yaml.add_representer(dict, yaixm.ordered_map_representer)
+    yaml.add_representer(dict, ordered_map_representer)
     yaml.dump({'obstacle': obstacles},
               args.yaml_file, default_flow_style=False)
 
 def calc_ils(args):
-    lon = yaixm.parse_deg(args.lon)
-    lat = yaixm.parse_deg(args.lat)
+    lon = parse_deg(args.lon)
+    lat = parse_deg(args.lat)
     centre = LatLon(lat, lon)
 
     bearing = args.bearing + 180
@@ -73,8 +73,8 @@ def calc_ils(args):
         print("- %s" % p.toStr(form="sec", prec=0, sep=" "))
 
 def calc_point(args):
-    lon = yaixm.parse_deg(args.lon)
-    lat = yaixm.parse_deg(args.lat)
+    lon = parse_deg(args.lon)
+    lat = parse_deg(args.lat)
     origin = LatLon(lat, lon)
 
     dist = args.distance * 1852
@@ -83,8 +83,8 @@ def calc_point(args):
     print(p.toStr(form="sec", prec=0, sep=" "))
 
 def calc_stub(args):
-    lon = yaixm.parse_deg(args.lon)
-    lat = yaixm.parse_deg(args.lat)
+    lon = parse_deg(args.lon)
+    lat = parse_deg(args.lat)
     centre = LatLon(lat, lon)
 
     length = args.length * 1852

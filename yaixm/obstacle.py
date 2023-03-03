@@ -3,7 +3,7 @@ import csv
 import math
 import sys
 
-from yaixm import parse_latlon, dms
+from .helpers import parse_latlon, dms
 
 def read_names(csv_file):
     reader = csv.reader(csv_file)
