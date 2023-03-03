@@ -16,6 +16,7 @@
 # along with YAIXM.  If not, see <http://www.gnu.org/licenses/>.
 
 from copy import deepcopy
+import datetime
 import json as _json
 import logging
 import math
@@ -234,3 +235,17 @@ def dms(deg):
     mins, secs = divmod(secs, 60)
     degs, mins = divmod(mins, 60)
     return {'d': degs, 'm': mins, 's': secs, 'ns': ns, 'ew': ew}
+
+# Get next AIRAC effective date after today
+def get_airac_date(offset=0):
+    # AIRAC cycle is fixed four week schedule
+    airac_date = datetime.date(2017, 11, 9)
+    today = datetime.date.today()
+    while airac_date < today:
+        airac_date += datetime.timedelta(days=28)
+
+    if offset != 0:
+        airac_date += datetime.timedelta(days=offset)
+
+    return airac_date.isoformat() + "T00:00:00Z"
+

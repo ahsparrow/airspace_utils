@@ -129,7 +129,7 @@ def cli():
                        dest="offset", const=-28, help="Use previous AIRAC date")
     group.add_argument("--next", action="store_const", default=0,
                        dest="offset", const=28, help="Use next AIRAC date")
-    sub_parser.set_defaults(func=yaixm.util_cli.release)
+    sub_parser.set_defaults(func=yaixm.cli.release)
 
     # stub sub-command
     sub_parser = subparsers.add_parser('stub', help='calculate MATZ stub coordinates')
