@@ -144,17 +144,6 @@ def cli():
                             help="Circle radius (nm)")
     sub_parser.set_defaults(func=yaixm.util_cli.calc_stub)
 
-    # tnp sub-command
-    sub_parser = subparsers.add_parser('tnp', help='convert to TNP')
-    sub_parser.add_argument("airspace_file", nargs="?",
-                            help="YAML airspace file",
-                            type=argparse.FileType("r"), default=sys.stdin)
-    sub_parser.add_argument("tnp_file", nargs="?",
-                            help="TNP output file, stdout if not specified",
-                            type=argparse.FileType("w", encoding="ascii"),
-                            default=sys.stdout)
-    sub_parser.set_defaults(func=yaixm.cli.tnp)
-
     args = parser.parse_args()
     args.func(args)
 

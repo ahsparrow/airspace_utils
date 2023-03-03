@@ -21,7 +21,7 @@ import os
 import subprocess
 import sys
 
-from .convert import Openair, Tnp, seq_name, make_filter, make_openair_type
+from .convert import Openair, seq_name, make_filter, make_openair_type
 from .helpers import get_airac_date, level, load, merge_loa, merge_service, validate
 from .geojson import geojson as convert_geojson
 from .parse_openair import parse as parse_openair
@@ -58,19 +58,6 @@ def openair(args):
     output_oa = oa.encode("ascii").decode("ascii")
 
     args.openair_file.write(output_oa)
-
-def tnp(args):
-    # Load airspace
-    airspace = load(args.airspace_file)
-
-    # Convert to openair
-    convert = Tnp()
-    oa = convert.convert(airspace['airspace'])
-
-    # Don't accept anything other than ASCII
-    output_oa = oa.encode("ascii").decode("ascii")
-
-    args.tnp_file.write(output_oa)
 
 def jsonify(args):
     data = load(args.yaml_file)
