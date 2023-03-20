@@ -38,12 +38,22 @@ OBSTACLE_TYPES = {
    'WASTE': "WASTE PIPE"
 }
 
+OPENAIR_LATLON_FMT = "{0[d]:02d}:{0[m]:02d}:{0[s]:02d} {0[ns]} {1[d]:03d}:{1[m]:02d}:{1[s]:02d} {1[ew]}"
+
 # Format distance as nm or km
 def format_distance(distance):
     dist, unit = distance.split()
     if unit == "km":
         dist = "%.3f" % (float(dist) / 1.852)
     return dist
+
+def openair_level_str(level):
+  if level == "SFC":
+      return "SFC"
+  elif level.endswith('ft'):
+      return level[:-3] + "ALT"
+  else:
+      return level
 
 # Filter factory
 def make_filter(noatz=True, microlight=True, hgl=True,
@@ -295,8 +305,7 @@ class Converter():
 
 # Openair converter
 class Openair(Converter):
-    latlon_fmt =  "{0[d]:02d}:{0[m]:02d}:{0[s]:02d} {0[ns]} "\
-                  "{1[d]:03d}:{1[m]:02d}:{1[s]:02d} {1[ew]}"
+    latlon_fmt =  OPENAIR_LATLON_FMT
 
     def __init__(self, filter_func=default_filter, name_func=noseq_name,
                  type_func=default_openair_type, header=None):
@@ -318,16 +327,8 @@ class Openair(Converter):
 
     # Upper and lower levels
     def do_levels(self, volume):
-        def level_str(level):
-          if level == "SFC":
-              return "SFC"
-          elif level.endswith('ft'):
-              return level[:-3] + "ALT"
-          else:
-              return level
-
-        return ["AL %s" % level_str(volume['lower']),
-                "AH %s" % level_str(volume['upper'])]
+        return ["AL %s" % openair_level_str(volume['lower']),
+                "AH %s" % openair_level_str(volume['upper'])]
 
     # Centre of arc or circle
     def centre(self, latlon):
