@@ -74,7 +74,7 @@ def do_arc(arc, from_lonlat, resolution):
 
     return points
 
-def geojson(airspace, resolution=15):
+def geojson(airspace, resolution=15, append_seqno=True):
     geo_features = []
     for feature in airspace:
         for volume in feature['geometry']:
@@ -83,7 +83,7 @@ def geojson(airspace, resolution=15):
 
             # Add properties
             name =  volume.get('name') or feature.get('name')
-            if 'seqno' in volume:
+            if append_seqno and 'seqno' in volume:
                 name = "{} {}".format(name, volume['seqno'])
             properties = {
                 'name': name,
