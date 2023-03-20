@@ -4,6 +4,7 @@ import sys
 
 import yaixm.cli
 import yaixm.util_cli
+import yaixm.overlay
 
 def cli():
     parser = argparse.ArgumentParser()
@@ -143,6 +144,19 @@ def cli():
     sub_parser.add_argument("radius", type=float, nargs="?", default=5,
                             help="Circle radius (nm)")
     sub_parser.set_defaults(func=yaixm.util_cli.calc_stub)
+
+    # overlay sub-command
+    sub_parser = subparsers.add_parser('overlay', help='make height overlay')
+    sub_parser.add_argument("airspace_file", nargs="?",
+                            help="YAML airspace file",
+                            type=argparse.FileType("r"), default=sys.stdin)
+    sub_parser.add_argument("output_file", nargs="?",
+                            help="Openair output file, stdout if not specified",
+                            type=argparse.FileType("wt"),
+                            default=sys.stdout)
+    sub_parser.add_argument("--max_alt", type=int, default=8500,
+                            help="Maximum base altitude")
+    sub_parser.set_defaults(func=yaixm.overlay.overlay)
 
     args = parser.parse_args()
     args.func(args)
