@@ -154,8 +154,11 @@ def cli():
                             help="Openair output file, stdout if not specified",
                             type=argparse.FileType("wt"),
                             default=sys.stdout)
-    sub_parser.add_argument("--max_alt", type=int, default=8500,
+    sub_parser.add_argument("--max_alt", type=int, default=10400,
                             help="Maximum base altitude")
+    sub_parser.add_argument("--debug_file",
+                            help="GeoJSON output file for debug",
+                            type=argparse.FileType("wb"))
     sub_parser.set_defaults(func=yaixm.overlay.overlay)
 
     args = parser.parse_args()

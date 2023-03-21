@@ -14,3 +14,7 @@ To validate a YAIXM file against the schema:
 To generate a ASSelect airspace files
 
     ./run.py release [--note RELEASE_NOTE] yaixm_dir yaixm.json openair.txt
+
+To generate the ASSelect overlay file (takes > 1 minute)
+
+    ./run.py overlay ../airspace/airspace.yaml ~/src/asselect/src/assets/overlay.txt

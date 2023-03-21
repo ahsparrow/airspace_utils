@@ -5,16 +5,19 @@ from math import sqrt
 
 from freetype import Face, FT_LOAD_DEFAULT, FT_LOAD_NO_BITMAP
 from geopandas import read_file, GeoDataFrame
+import numpy
 import pandas
-from shapely import MultiPolygon, Polygon
+from shapely import MultiPoint, MultiPolygon, Point, Polygon, minimum_bounding_radius
 from shapely.affinity import scale, skew, translate
 from shapely.ops import polylabel
+from sklearn.cluster import KMeans
 
 from yaixm.convert import OPENAIR_LATLON_FMT, openair_level_str
 from yaixm.geojson import geojson as convert_geojson
 from yaixm.helpers import dms, load
 
-SIZE = 5000
+TEXT_SIZE = 3000
+SPLIT_RADIUS = 50000
 
 
 # Get character glyphs from TTF file
@@ -84,7 +87,7 @@ def get_position(polys):
         centroid = p.centroid
         centroid_dist = centroid.distance(p.exterior)
 
-        if p.contains(centroid) and centroid_dist > (SIZE * 0.95):
+        if p.contains(centroid) and centroid_dist > (poi_dist * 0.95):
             pos.append(centroid)
             dist.append(centroid_dist)
         else:
@@ -92,6 +95,42 @@ def get_position(polys):
             dist.append(poi_dist)
 
     return pos, dist
+
+
+# Split a polygon into two
+def split_poly(poly, grid=500):
+    # Create array of points inside polygon
+    minx, miny, maxx, maxy = poly.bounds
+    nx = int((maxx - minx) // grid + 1)
+    ny = int((maxy - miny) // grid + 1)
+
+    pts = MultiPoint([Point(x * grid, y * grid) for x in range(nx) for y in range(ny)])
+
+    pts = translate(pts, minx, miny)
+    pts = poly.intersection(pts)
+
+    # Split points into two clusters using k-means clustering
+    kmeans = KMeans(n_clusters=2, random_state=0, n_init="auto")
+    cluster = kmeans.fit_predict([(p.x, p.y) for p in pts.geoms])
+
+    # Create new polgons from clusted points
+    c1 = MultiPoint(numpy.array(pts.geoms)[cluster == 0])
+    p1 = c1.buffer(grid * 1.6).intersection(poly)
+
+    c2 = MultiPoint(numpy.array(pts.geoms)[cluster == 1])
+    p2 = c2.buffer(grid * 1.6).intersection(poly)
+
+    # Return polygon array
+    return [p1, p2]
+
+
+# Iteratively split polygons into smaller parts
+def poly_splitter(poly, max_size):
+    if minimum_bounding_radius(poly) > max_size:
+        p1, p2 = split_poly(poly)
+        return poly_splitter(p1, max_size) + poly_splitter(p2, max_size)
+    else:
+        return [poly]
 
 
 def overlay(args):
@@ -114,7 +153,7 @@ def overlay(args):
     ]
 
     # Change to X/Y projection
-    cta = cta.to_crs("EPSG:3857")
+    cta = cta.to_crs("EPSG:27700")
 
     # Discard all but geometry
     cta_geom = GeoDataFrame({"geometry": cta.geometry})
@@ -130,10 +169,11 @@ def overlay(args):
     # Remove empty polygons
     polys = polys[~polys.is_empty]
 
-    # Calculate poles-of-inaccessablility and distance to edge
-    poi = [polylabel(p, tolerance=10) for p in polys]
-    dist = [pt.distance(py.exterior) for pt, py in zip(poi, polys)]
+    # Split bigger polygons
+    polys = [poly_splitter(p, SPLIT_RADIUS) for p in polys]
+    polys = [poly for sublist in polys for poly in sublist]
 
+    # Get label positions nd distance to edge
     poi, dist = get_position(polys)
 
     # Character glyphs
@@ -143,7 +183,7 @@ def overlay(args):
     )
 
     # Create annotation
-    annotation = GeoDataFrame({"geometry": []}, crs="EPSG:3857")
+    annotation = GeoDataFrame({"geometry": []}, crs="EPSG:27700")
     for p, d in zip(poi, dist):
         # Find lowest airspace at point p
         ctas = cta.cx[p.x : p.x + 1, p.y : p.y + 1]
@@ -162,7 +202,7 @@ def overlay(args):
         minx, miny, maxx, maxy = txt.bounds
 
         # Scale to fit space available
-        scl = 2 * min(d, SIZE) / sqrt((maxx - minx) ** 2 + (maxy - miny) ** 2)
+        scl = 2 * min(d, TEXT_SIZE) / sqrt((maxx - minx) ** 2 + (maxy - miny) ** 2)
         txt = scale(txt, scl, scl)
         minx, miny, maxx, maxy = txt.bounds
 
@@ -179,12 +219,13 @@ def overlay(args):
             "upper": [lowest_cta["upper"]],
         }
         annotation = pandas.concat(
-            [annotation, GeoDataFrame(data, crs="EPSG:3857")], ignore_index=False
+            [annotation, GeoDataFrame(data, crs="EPSG:27700")], ignore_index=False
         )
 
     # Convert to WGS84
     annotation = annotation.to_crs("EPSG:4326")
-    annotation.to_file("/home/ahs/tmp/annotation.json", driver="GeoJSON")
+    if args.debug_file:
+        annotation.to_file(args.debug_file, driver="GeoJSON")
 
     # Convert to OpenAir and write to file
     openair = make_openair(annotation)
