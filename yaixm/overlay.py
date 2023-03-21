@@ -14,6 +14,8 @@ from yaixm.convert import OPENAIR_LATLON_FMT, openair_level_str
 from yaixm.geojson import geojson as convert_geojson
 from yaixm.helpers import dms, load
 
+SIZE = 5000
+
 
 # Get character glyphs from TTF file
 def get_glyphs(font, chars):
@@ -71,6 +73,27 @@ def make_openair(annotation):
     return "\n".join(openair)
 
 
+# Calculate best position for annotation
+def get_position(polys):
+    pos = []
+    dist = []
+    for p in polys:
+        poi = polylabel(p, tolerance=10)
+        poi_dist = poi.distance(p.exterior)
+
+        centroid = p.centroid
+        centroid_dist = centroid.distance(p.exterior)
+
+        if p.contains(centroid) and centroid_dist > (SIZE * 0.95):
+            pos.append(centroid)
+            dist.append(centroid_dist)
+        else:
+            pos.append(poi)
+            dist.append(poi_dist)
+
+    return pos, dist
+
+
 def overlay(args):
     # Load airspace in geojson format
     airspace = load(args.airspace_file)
@@ -111,6 +134,8 @@ def overlay(args):
     poi = [polylabel(p, tolerance=10) for p in polys]
     dist = [pt.distance(py.exterior) for pt, py in zip(poi, polys)]
 
+    poi, dist = get_position(polys)
+
     # Character glyphs
     glyphs = get_glyphs(
         files("yaixm").joinpath("AllertaStencil-Regular.ttf").open("rb"),
@@ -137,7 +162,7 @@ def overlay(args):
         minx, miny, maxx, maxy = txt.bounds
 
         # Scale to fit space available
-        scl = min(2 * d / sqrt((maxx - minx) ** 2 + (maxy - miny) ** 2), 10)
+        scl = 2 * min(d, SIZE) / sqrt((maxx - minx) ** 2 + (maxy - miny) ** 2)
         txt = scale(txt, scl, scl)
         minx, miny, maxx, maxy = txt.bounds
 
@@ -159,7 +184,7 @@ def overlay(args):
 
     # Convert to WGS84
     annotation = annotation.to_crs("EPSG:4326")
-    # annotation.to_file("/home/ahs/tmp/annotation.json", driver="GeoJSON")
+    annotation.to_file("/home/ahs/tmp/annotation.json", driver="GeoJSON")
 
     # Convert to OpenAir and write to file
     openair = make_openair(annotation)
