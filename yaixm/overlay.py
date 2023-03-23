@@ -17,7 +17,7 @@ from yaixm.geojson import geojson as convert_geojson
 from yaixm.helpers import dms, load
 
 TEXT_SIZE = 3000
-SPLIT_RADIUS = 50000
+SPLIT_RADIUS = 22500
 
 
 # Get character glyphs from TTF file
@@ -38,7 +38,7 @@ def get_glyphs(font, chars):
         # Polygons for glyph
         mp = MultiPolygon([Polygon(outline.points[s]) for s in slices])
         glyphs["normal"][char] = mp
-        glyphs["slanted"][char] = skew(mp, 25)
+        glyphs["slanted"][char] = skew(mp, 20)
 
     return glyphs
 
@@ -55,7 +55,7 @@ def make_string(glyphs, text, style="normal"):
         poly = translate(poly, offset)
         result = result.union(poly)
 
-        offset += maxx
+        offset += maxx + 50
 
     return result
 
@@ -87,7 +87,7 @@ def get_position(polys):
         centroid = p.centroid
         centroid_dist = centroid.distance(p.exterior)
 
-        if p.contains(centroid) and centroid_dist > (poi_dist * 0.95):
+        if p.contains(centroid) and centroid_dist > min(TEXT_SIZE, (poi_dist * 0.90)):
             pos.append(centroid)
             dist.append(centroid_dist)
         else:
@@ -178,7 +178,7 @@ def overlay(args):
 
     # Character glyphs
     glyphs = get_glyphs(
-        files("yaixm").joinpath("AllertaStencil-Regular.ttf").open("rb"),
+        files("yaixm").joinpath("asselect.ttf").open("rb"),
         "0123456789",
     )
 
