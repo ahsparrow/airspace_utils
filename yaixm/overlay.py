@@ -178,7 +178,7 @@ def overlay(args):
 
     # Character glyphs
     glyphs = get_glyphs(
-        files("yaixm").joinpath("asselect.ttf").open("rb"),
+        files("yaixm").joinpath("data").joinpath("asselect.ttf").open("rb"),
         "0123456789",
     )
 
