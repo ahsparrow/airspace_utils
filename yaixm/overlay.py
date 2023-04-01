@@ -73,6 +73,7 @@ def make_openair(annotation):
                 latlon = OPENAIR_LATLON_FMT.format(dms(vertex[1]), dms(vertex[0]))
                 openair.append(f"DP {latlon}")
 
+    openair.append("")
     return "\n".join(openair)
 
 
