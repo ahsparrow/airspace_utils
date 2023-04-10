@@ -15,124 +15,141 @@
 # You should have received a copy of the GNU General Public License
 # along with YAIXM.  If not, see <http://www.gnu.org/licenses/>.
 
-from pygeodesy.ellipsoidalVincenty import LatLon
+from geopandas import GeoDataFrame
+import numpy as np
+from pyproj import Transformer
+from pyproj.enums import TransformDirection
+from shapely import Polygon
 
 from .helpers import parse_latlon, level
 
+
 def do_line(line):
-    return [parse_latlon(p)[::-1] for p in line]
+    return np.array([parse_latlon(p) for p in line])
+
 
 def do_circle(circle, resolution):
-    centre = LatLon(*parse_latlon(circle['centre']))
+    transformer = Transformer.from_crs(4326, 27700)
+
+    centre_x, centre_y = transformer.transform(*parse_latlon(circle["centre"]))
     delta = 90 / resolution
 
-    # Get radius, in metres
-    radius_str = circle['radius']
+    # Get radius (assume in nm)
+    radius_str = circle["radius"]
     radius = float(radius_str.split()[0]) * 1852
 
     # Calculate points on circumference
-    points = []
-    for i in range(resolution * 4):
-        bearing = i * delta
-        dest = centre.destination(radius, bearing)
-        points.append((dest.lon, dest.lat))
+    angle = np.linspace(0, 2 * np.pi, resolution * 4 + 1)
 
-    return points
+    x = centre_x + radius * np.cos(angle)
+    y = centre_y + radius * np.sin(angle)
+    pts = transformer.transform(x, y, direction=TransformDirection.INVERSE)
 
-def do_arc(arc, from_lonlat, resolution):
-    centre = LatLon(*parse_latlon(arc['centre']))
-    from_point = LatLon(from_lonlat[1], from_lonlat[0])
-    to_point = LatLon(*parse_latlon(arc['to']))
+    return np.array(pts).T
 
-    # Get radius, in metres
-    radius = centre.distanceTo(from_point)
 
-    # Get from and to bearings
-    bearing_from = centre.bearingTo(from_point)
-    bearing_to = centre.bearingTo(to_point)
+def do_arc(arc, from_latlon, resolution):
+    transformer = Transformer.from_crs(4326, 27700)
 
-    # Calculate arc length, in degrees
-    arc_len = (bearing_to - bearing_from) % 360
-    if arc['dir'] == "ccw":
-        arc_len = 360 - arc_len
+    from_x, from_y = transformer.transform(*from_latlon)
+    to_x, to_y = transformer.transform(*parse_latlon(arc["to"]))
+    centre_x, centre_y = transformer.transform(*parse_latlon(arc["centre"]))
 
-    # Piecewise approximation of arc
-    points = []
-    num_incs = round(arc_len / (90 / resolution))
-    if num_incs > 0:
-        delta = arc_len / num_incs
-        if arc['dir'] == "ccw":
-            delta = -delta
+    # Get radius, either property or calculated
+    if (radius_str := arc.get("radius")):
+        # assume in nm
+        radius = float(radius_str.split()[0]) * 1852
+    else:
+        radius = np.sqrt((to_x - centre_x) ** 2 + (to_y - centre_y) ** 2)
 
-        for i in range(1, num_incs):
-            bearing = bearing_from + i * delta
-            dest = centre.destination(radius, bearing)
-            points.append((dest.lon, dest.lat))
+    # Angle is zero for due East, and increase anticlockwise
+    angle_from = np.arctan2(from_y - centre_y, from_x - centre_x)
+    angle_to = np.arctan2(to_y - centre_y, to_x - centre_x)
 
-    # Add to point
-    points.append((to_point.lon, to_point.lat))
+    if arc["dir"] == "ccw":
+        if angle_to < angle_from:
+            angle_to += 2 * np.pi
 
-    return points
+        angle = np.linspace(-np.pi, 3 * np.pi, resolution * 8 + 1)
+        angle = angle[(angle > angle_from) & (angle < angle_to)]
+    else:
+        if angle_to > angle_from:
+            angle_from += 2 * np.pi
+
+        angle = np.linspace(3 * np.pi, -np.pi, resolution * 8 + 1)
+        angle = angle[(angle < angle_from) & (angle > angle_to)]
+
+    x = centre_x + radius * np.cos(angle)
+    y = centre_y + radius * np.sin(angle)
+    x = np.append(x, to_x)
+    y = np.append(y, to_y)
+
+    pts = transformer.transform(x, y, direction=TransformDirection.INVERSE)
+
+    return np.array(pts).T
+
+
+def boundary_polygon(boundary, resolution):
+    line_strs = []
+    for segment in boundary:
+        match segment:
+            case {"circle": circle}:
+                line_str = do_circle(circle, resolution)
+            case {"line": line}:
+                line_str = do_line(line)
+            case {"arc": arc}:
+                line_str = do_arc(arc, line_str[-1], resolution)
+
+        line_strs.append(line_str)
+
+    return Polygon(np.fliplr(np.concatenate(line_strs)))
+
 
 def geojson(airspace, resolution=15, append_seqno=True):
-    geo_features = []
+    name_list = []
+    class_list = []
+    type_list = []
+    localtype_list = []
+    upper_list = []
+    lower_list = []
+    normlower_list = []
+    rules_list = []
+    geometry_list = []
+
     for feature in airspace:
-        for volume in feature['geometry']:
-            # Create new GeoJSON feature
-            geo_feature = {'type': "Feature"}
-
+        for volume in feature["geometry"]:
             # Add properties
-            name =  volume.get('name') or feature.get('name')
-            if append_seqno and 'seqno' in volume:
-                name = "{} {}".format(name, volume['seqno'])
-            properties = {
-                'name': name,
-                'lower': volume['lower'],
-                'upper': volume['upper'],
-                'type' : feature['type'],
-                'normlower': level(volume['lower'])
-            }
+            name = volume.get("name") or feature.get("name")
+            if append_seqno and "seqno" in volume:
+                name = "{} {}".format(name, volume["seqno"])
 
-            cls = volume.get('class') or feature.get('class')
-            if cls:
-                properties['class'] = cls
+            name_list.append(name)
+            class_list.append(volume.get("class") or feature.get("class"))
+            type_list.append(feature["type"])
+            localtype_list.append(feature.get("localtype"))
+            lower_list.append(volume["lower"])
+            upper_list.append(volume["upper"])
+            normlower_list.append(level(volume["lower"]))
 
-            if feature.get('localtype'):
-                properties['localtype'] = feature.get('localtype')
+            rules = feature.get("rules", [])[:]
+            rules.extend(volume.get("rules", []))
+            rules_list.append("".join(rules))
 
-            rules = feature.get('rules', [])[:]
-            rules.extend(volume.get('rules', []))
-            if rules:
-                properties['rules'] = rules
+            geometry_list.append(boundary_polygon(volume["boundary"], resolution))
 
-            geo_feature['properties'] = properties
+    df = GeoDataFrame(
+        {
+            "name": name_list,
+            "class": class_list,
+            "type": type_list,
+            "localtype": localtype_list,
+            "upper": upper_list,
+            "lower": lower_list,
+            "normlower": normlower_list,
+            "rules": rules_list,
+            "geometry": geometry_list,
+        },
+        crs="EPSG:4326",
+    )
 
-            # Add polygon geometry
-            points = []
-            for segment in volume['boundary']:
-                if 'line' in segment:
-                    points.extend(do_line(segment['line']))
-                elif 'arc' in segment:
-                    points.extend(do_arc(segment['arc'], points[-1],
-                                         resolution))
-                elif 'circle' in segment:
-                    points = do_circle(segment['circle'], resolution)
-
-            # Close the polygon
-            if points[0] != points[-1]:
-                points.append(points[0])
-
-            # Add feature to feature list
-            geo_feature['geometry'] = {
-                'type': "Polygon",
-                'coordinates': [points]
-            }
-            geo_features.append(geo_feature)
-
-    collection = {
-        'type': "FeatureCollection",
-        'name': "UKAIR",
-        'features': geo_features
-    }
-
-    return collection
+    return df

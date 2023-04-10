@@ -89,10 +89,12 @@ def geojson(args):
         # Openair input
         airspace = {'airspace': parse_openair(args.airspace_file.read())}
 
-    # Convert to GeoJSON
-    gjson = convert_geojson(airspace['airspace'], resolution=args.resolution)
+    # Convert to GeoDataFrame
+    df = convert_geojson(airspace['airspace'], resolution=args.resolution)
 
-    json.dump(gjson, args.geojson_file, sort_keys=True, indent=4)
+    # Write to GeoJSON file
+    df.to_file(args.geojson_file, driver="GeoJSON")
+
 
 def navplot(args):
     # Load airspace

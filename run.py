@@ -25,7 +25,7 @@ def cli():
                             type=argparse.FileType("r"), default=sys.stdin)
     sub_parser.add_argument("geojson_file", nargs="?",
                             help="GeoJSON output file, stdout if not specified",
-                            type=argparse.FileType("w"),
+                            type=argparse.FileType("wb"),
                             default=sys.stdout)
     sub_parser.add_argument("-r", "--resolution", type=int, default=15,
                             help="Angular resolution, per 90 degrees")
