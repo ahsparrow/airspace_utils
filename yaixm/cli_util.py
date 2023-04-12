@@ -27,7 +27,7 @@ import tempfile
 from pygeodesy.ellipsoidalVincenty import LatLon
 import yaml
 
-from .helpers import ordered_map_representer, parse_deg
+from yaixm.utils import ordered_map_representer, parse_deg
 
 def calc_ils(args):
     lon = parse_deg(args.lon)

@@ -23,10 +23,10 @@ import sys
 
 from geopandas import GeoDataFrame
 
-from .convert import Openair, seq_name, make_filter, make_openair_type
-from .helpers import get_airac_date, level, load, merge_loa, merge_service, validate
+from yaixm.convert import Openair, seq_name, make_filter, make_openair_type
+from yaixm.utils import get_airac_date, normlevel, load, merge_loa, merge_service, validate
 from yaixm.boundary import boundary_polygon
-from .parse_openair import parse as parse_openair
+from yaixm.parse_openair import parse as parse_openair
 from yaixm.yaixm import load_airspace
 
 HEADER = """UK Airspace
@@ -92,7 +92,7 @@ def navplot(args):
             if (feature["type"] in ["CTA", "CTR", "D", "TMA"] or
                 feature["type"] == "OTHER" and feature["localtype"] == "MATZ"):
 
-                if level(volume["lower"]) < 6000 and "NOTAM" not in rules:
+                if normlevel(volume["lower"]) < 6000 and "NOTAM" not in rules:
                     volumes.append(volume)
 
     dummy = [{'geometry': volumes, 'name': "DUMMY", 'type': "OTHER"}]

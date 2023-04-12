@@ -213,7 +213,7 @@ def minmax_lat(volume):
     return min(lat_arr), max(lat_arr)
 
 # Return "normalised" level from SFC, altitude or flight level
-def level(value):
+def normlevel(value):
     if value.startswith("FL"):
         return int(value[2:]) * 100
     elif value.endswith("ft"):

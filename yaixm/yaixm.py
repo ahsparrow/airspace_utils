@@ -18,7 +18,7 @@
 import pandas
 import yaml
 
-from yaixm.helpers import level
+from yaixm.utils import normlevel
 
 def load_airspace(path):
     data = yaml.load(open(path).read(), Loader=yaml.CLoader)
@@ -33,7 +33,7 @@ def load_airspace(path):
             "localtype": feature.get("localtype"),
             "lower": volume["lower"],
             "name": volume.get("name") or feature["name"],
-            "normlower": level(volume["lower"]),
+            "normlower": normlevel(volume["lower"]),
             "rules": ",".join(feature.get("rules", []) + volume.get("rules", [])),
             "seqno": str(s) if (s := volume.get("seqno")) else None,
             "type": feature["type"],

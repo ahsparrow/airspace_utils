@@ -14,7 +14,7 @@ from sklearn.cluster import KMeans
 
 from yaixm.boundary import boundary_polygon
 from yaixm.convert import OPENAIR_LATLON_FMT, openair_level_str
-from yaixm.helpers import dms
+from yaixm.utils import dms
 from yaixm.yaixm import load_airspace
 
 TEXT_SIZE = 3000

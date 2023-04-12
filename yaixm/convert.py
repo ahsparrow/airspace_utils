@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with YAIXM.  If not, see <http://www.gnu.org/licenses/>.
 
-from .helpers import parse_latlon, level, minmax_lat, dms
+from yaixm.utils import parse_latlon, normlevel, minmax_lat, dms
 
 OBSTACLE_TYPES = {
    'BLDG': "BUILDING",
@@ -88,7 +88,7 @@ def make_filter(noatz=True, microlight=True, hgl=True,
             return False
 
         # Max level
-        if max_level and level(volume['lower']) >= max_level:
+        if max_level and normlevel(volume['lower']) >= max_level:
             return False
 
         # Min/max latitude
