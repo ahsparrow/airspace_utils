@@ -83,15 +83,6 @@ def cli():
                             type=argparse.FileType("wb"))
     sub_parser.set_defaults(func=yaixm.overlay.overlay)
 
-    # check-service sub-command
-    sub_parser = subparsers.add_parser('check-service',
-            help='check services exist in airspace file')
-    sub_parser.add_argument("service_file", type=argparse.FileType("r"),
-                            help="Service file")
-    sub_parser.add_argument("airspace_file", type=argparse.FileType("r"),
-                            help="Airspace file")
-    sub_parser.set_defaults(func=yaixm.cli_util.check_service)
-
     # ils sub-command
     sub_parser = subparsers.add_parser('ils', help='calculate ILS coordinates')
     sub_parser.add_argument("lat", help="Centre latitude, DMS e.g. 512345N")
