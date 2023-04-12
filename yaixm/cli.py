@@ -27,7 +27,14 @@ import yaml
 from yaixm.boundary import boundary_polygon
 from yaixm.convert import Openair, seq_name, make_filter, make_openair_type
 from yaixm.parse_openair import parse as parse_openair
-from yaixm.util import get_airac_date, normlevel, load, merge_loa, merge_service, validate
+from yaixm.util import (
+    get_airac_date,
+    normlevel,
+    load,
+    merge_loa,
+    merge_service,
+    validate,
+)
 from yaixm.yaixm import load_airspace
 
 HEADER = """UK Airspace
@@ -58,24 +65,27 @@ def openair(args):
         convert = Openair(name_func=seq_name, type_func=make_openair_type(comp=True))
     else:
         convert = Openair()
-    oa = convert.convert(airspace['airspace'])
+    oa = convert.convert(airspace["airspace"])
 
     # Don't accept anything other than ASCII
     output_oa = oa.encode("ascii").decode("ascii")
 
     args.openair_file.write(output_oa)
 
+
 # Convert either yaxim or openair file to GIS format
 def gis(args):
     # Load airspace
-    if args.airspace_filepath.endswith('yaml'):
+    if args.airspace_filepath.endswith("yaml"):
         # YAML input
         airspace = load_airspace(args.airspace_filepath)
     else:
         # Openair input
-        airspace = {'airspace': parse_openair(args.airspace_file.read())}
+        airspace = {"airspace": parse_openair(args.airspace_file.read())}
 
-    airspace["geometry"] = airspace["boundary"].apply(lambda x: boundary_polygon(x, resolution=args.resolution))
+    airspace["geometry"] = airspace["boundary"].apply(
+        lambda x: boundary_polygon(x, resolution=args.resolution)
+    )
     airspace = airspace.drop("boundary", axis=1)
 
     # Convert to GeoDataFrame and write to file
@@ -85,25 +95,24 @@ def gis(args):
 
 def navplot(args):
     # Load airspace
-    yaixm = load(args.yaixm_file)
+    airspace = load_airspace(args.airspace_filepath)
 
-    volumes = []
-    for feature in yaixm["airspace"]:
-        for volume in feature["geometry"]:
-            rules = feature.get('rules', []) + volume.get('rules', [])
+    navplot_airspace = airspace[
+        (
+            airspace["type"].isin(["CTA", "CTR", "D", "TMA"])
+            | (airspace["localtype"] == "MATZ")
+        )
+        & (airspace["normlower"] < 6000)
+    ]
 
-            if (feature["type"] in ["CTA", "CTR", "D", "TMA"] or
-                feature["type"] == "OTHER" and feature["localtype"] == "MATZ"):
+    geometry = navplot_airspace["boundary"].apply(
+        lambda x: boundary_polygon(x, resolution=9)
+    )
 
-                if normlevel(volume["lower"]) < 6000 and "NOTAM" not in rules:
-                    volumes.append(volume)
+    # Convert to GeoDataFrame and write to file
+    df = GeoDataFrame({"geometry": geometry}, crs="EPSG:4326")
+    df.to_file(args.navplot_filepath)
 
-    dummy = [{'geometry': volumes, 'name': "DUMMY", 'type': "OTHER"}]
-
-    # Convert to GeoJSON
-    gjson = convert_geojson(dummy, resolution=15)
-
-    json.dump(gjson, args.navplot_file, sort_keys=True, indent=4)
 
 # Convert collection of YAIXM files containing airspace, LOAs and
 # obstacles to JSON file with release header and to default Openair file
@@ -115,28 +124,32 @@ def release(args):
 
     # Append release header
     header = {
-        'schema_version': 1,
-        'airac_date': get_airac_date(args.offset),
-        'timestamp': datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+        "schema_version": 1,
+        "airac_date": get_airac_date(args.offset),
+        "timestamp": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
     }
 
     # Add notes
     if args.note:
-        header['note'] = args.note.read()
+        header["note"] = args.note.read()
     else:
-        header['note'] = open(os.path.join(args.yaixm_dir, "release.txt")).read()
-    out.update({'release': header})
+        header["note"] = open(os.path.join(args.yaixm_dir, "release.txt")).read()
+    out.update({"release": header})
 
     # Get Git commit
     try:
         # Get head revision
-        head = subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD"],
-                              cwd=args.yaixm_dir, check=True,
-                              stdout=subprocess.PIPE)
+        head = subprocess.run(
+            ["git", "rev-parse", "--verify", "-q", "HEAD"],
+            cwd=args.yaixm_dir,
+            check=True,
+            stdout=subprocess.PIPE,
+        )
 
         # Check for pending commits
-        diff = subprocess.run(["git", "diff-index", "--quiet", "HEAD", "--"],
-                              cwd=args.yaixm_dir)
+        diff = subprocess.run(
+            ["git", "diff-index", "--quiet", "HEAD", "--"], cwd=args.yaixm_dir
+        )
         if diff.returncode:
             commit = "changed"
         else:
@@ -145,7 +158,7 @@ def release(args):
     except subprocess.CalledProcessError:
         commit = "unknown"
 
-    header['commit'] = commit
+    header["commit"] = commit
 
     # Validate final output
     error = validate(out)
@@ -162,22 +175,26 @@ def release(args):
     hdr += f"Commit: {commit}\n"
     hdr += "\n"
     if args.note:
-        hdr += header['note']
+        hdr += header["note"]
 
-    loas = [loa for loa in out['loa'] if loa['name'] == "CAMBRIDGE RAZ"]
-    airspace = merge_loa(out['airspace'], loas)
+    loas = [loa for loa in out["loa"] if loa["name"] == "CAMBRIDGE RAZ"]
+    airspace = merge_loa(out["airspace"], loas)
 
     services = {}
-    for service in out['service']:
-        for control in service['controls']:
-            services[control] = service['frequency']
+    for service in out["service"]:
+        for control in service["controls"]:
+            services[control] = service["frequency"]
     airspace = merge_service(airspace, services)
 
-    type_func = make_openair_type(atz="CTR", ils="G", glider="W", noatz="G",
-                                  ul="G", comp=False)
+    type_func = make_openair_type(
+        atz="CTR", ils="G", glider="W", noatz="G", ul="G", comp=False
+    )
 
-    exclude = [{'name': a['name'], 'type': "D_OTHER"} for a in out['airspace']
-            if "TRA" in a.get('rules', []) or "NOSSR" in a.get('rules', [])]
+    exclude = [
+        {"name": a["name"], "type": "D_OTHER"}
+        for a in out["airspace"]
+        if "TRA" in a.get("rules", []) or "NOSSR" in a.get("rules", [])
+    ]
     filter_func = make_filter(microlight=False, hgl=False, exclude=exclude)
 
     convert = Openair(type_func=type_func, filter_func=filter_func, header=hdr)
