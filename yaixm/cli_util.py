@@ -29,6 +29,7 @@ import yaml
 
 from yaixm.util import ordered_map_representer, parse_deg
 
+
 def calc_ils(args):
     lon = parse_deg(args.lon)
     lat = parse_deg(args.lat)
@@ -38,11 +39,12 @@ def calc_ils(args):
     radius = args.radius * 1852
 
     distances = [radius, 8 * 1852, 8 * 1852, radius]
-    bearings = [bearing -3, bearing -3, bearing + 3, bearing + 3]
+    bearings = [bearing - 3, bearing - 3, bearing + 3, bearing + 3]
 
     for d, b in zip(distances, bearings):
         p = centre.destination(d, b)
         print("- %s" % p.toStr(form="sec", prec=0, sep=" "))
+
 
 def calc_stub(args):
     lon = parse_deg(args.lon)
@@ -67,7 +69,7 @@ def calc_stub(args):
     print(p2.toStr(form="sec", prec=0, sep=" "))
 
     # Outer stub
-    dist = math.sqrt((radius + length) ** 2 + (width / 2) **2)
+    dist = math.sqrt((radius + length) ** 2 + (width / 2) ** 2)
     theta = math.atan(width / (2 * (radius + length)))
 
     bearing = args.bearing + 180 + math.degrees(theta)

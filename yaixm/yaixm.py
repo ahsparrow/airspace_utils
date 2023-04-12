@@ -20,6 +20,7 @@ import yaml
 
 from yaixm.util import normlevel
 
+
 def load_airspace(path):
     data = yaml.load(open(path), Loader=yaml.CLoader)
 

@@ -26,6 +26,7 @@ from yaixm.util import parse_latlon
 
 TransformerFromCrs = lru_cache(Transformer.from_crs)
 
+
 def do_line(line):
     return np.array([parse_latlon(p) for p in line])
 
