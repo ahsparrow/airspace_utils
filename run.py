@@ -95,9 +95,8 @@ def cli():
 
     # overlay sub-command
     sub_parser = subparsers.add_parser('overlay', help='make height overlay')
-    sub_parser.add_argument("airspace_file", nargs="?",
-                            help="YAML airspace file",
-                            type=argparse.FileType("r"), default=sys.stdin)
+    sub_parser.add_argument("airspace_filepath",
+                            help="YAML airspace file")
     sub_parser.add_argument("output_file", nargs="?",
                             help="Openair output file, stdout if not specified",
                             type=argparse.FileType("wt"),

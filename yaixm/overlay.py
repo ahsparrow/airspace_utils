@@ -12,9 +12,10 @@ from shapely.affinity import scale, skew, translate
 from shapely.ops import polylabel
 from sklearn.cluster import KMeans
 
+from yaixm.boundary import boundary_polygon
 from yaixm.convert import OPENAIR_LATLON_FMT, openair_level_str
-from yaixm.geojson import geojson as convert_geojson
-from yaixm.helpers import dms, load
+from yaixm.helpers import dms
+from yaixm.yaixm import load_airspace
 
 TEXT_SIZE = 3000
 SPLIT_RADIUS = 22500
@@ -135,22 +136,17 @@ def poly_splitter(poly, max_size):
 
 
 def overlay(args):
-    # Load airspace in geojson format
-    airspace = load(args.airspace_file)
-    geojson = convert_geojson(airspace["airspace"], append_seqno=False)
-
     # Create geopandas GeoDataFrame
-    df = read_file(io.StringIO(json.dumps(geojson)))
+    df = load_airspace(args.airspace_filepath)
+    df["geometry"] = df["boundary"].apply(lambda x: boundary_polygon(x, resolution=9))
+    gdf = GeoDataFrame(df, crs="EPSG:4326")
 
     # Filter CTA, etc. and limit base level
-    cta = df[
-        df["type"].isin(["CTA", "CTR", "TMA"])
-        & (df["normlower"] <= args.max_alt)
-        & (df["name"] != "BRIZE NORTON CTR")
-        & (
-            df["rules"].isna()
-            | df["rules"].apply(str).apply(lambda x: x.count("NOTAM") == 0)
-        )
+    cta = gdf[
+        gdf["type"].isin(["CTA", "CTR", "TMA"])
+        & (gdf["normlower"] <= args.max_alt)
+        & (gdf["name"] != "BRIZE NORTON CTR")
+        & (gdf["rules"].isna() | gdf["rules"].apply(lambda x: x.count("NOTAM") == 0))
     ]
 
     # Change to X/Y projection
@@ -226,7 +222,7 @@ def overlay(args):
     # Convert to WGS84
     annotation = annotation.to_crs("EPSG:4326")
     if args.debug_file:
-        annotation.to_file(args.debug_file, driver="GeoJSON")
+        annotation.to_file(args.debug_file)
 
     # Convert to OpenAir and write to file
     openair = make_openair(annotation)

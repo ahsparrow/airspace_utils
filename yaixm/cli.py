@@ -99,7 +99,7 @@ def gis(args):
 
     # Convert to GeoDataFrame and write to file
     df = GeoDataFrame(airspace, crs="EPSG:4326")
-    write_dataframe(df, args.gis_filepath)
+    df.to_file(args.gis_filepath)
 
 
 def navplot(args):
