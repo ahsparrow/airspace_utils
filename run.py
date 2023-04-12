@@ -28,31 +28,6 @@ def cli():
                             help="angular resolution, per 90 degrees")
     sub_parser.set_defaults(func=yaixm.cli.gis)
 
-    # json sub-command
-    sub_parser = subparsers.add_parser('json', help='convert to JSON')
-    sub_parser.add_argument("yaml_file", nargs="?",
-                            help="YAML input file, stdin if not specified",
-                            type=argparse.FileType("r"), default=sys.stdin)
-    sub_parser.add_argument("json_file", nargs="?",
-                            help="JSON output file, stdout if not specified",
-                            type=argparse.FileType("w"), default=sys.stdout)
-    sub_parser.add_argument("-i", "--indent", type=int, help="indent level",
-                            default=None)
-    sub_parser.add_argument("-s", "--sort", help="sort keys", action="store_true")
-    sub_parser.set_defaults(func=yaixm.cli.jsonify)
-
-    # merge sub-command
-    sub_parser = subparsers.add_parser('merge', help='merge LOAs')
-    sub_parser.add_argument("input_file", nargs="?",
-                            help="YAML input file, stdin if not specified",
-                            type=argparse.FileType("r"), default=sys.stdin)
-    sub_parser.add_argument("output_file", nargs="?",
-                            help="Merged JSON output file, stdout if not specified",
-                            type=argparse.FileType("w"), default=sys.stdout)
-    sub_parser.add_argument("-m", "--merge", default="",
-                            help="Comma separated list of LOAs to merge")
-    sub_parser.set_defaults(func=yaixm.cli.merge)
-
     # navplot sub-command
     sub_parser = subparsers.add_parser('navplot', help='make NavPlot airspace')
     sub_parser.add_argument("yaixm_file", type=argparse.FileType("r"),

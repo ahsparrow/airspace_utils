@@ -62,28 +62,6 @@ def openair(args):
 
     args.openair_file.write(output_oa)
 
-def jsonify(args):
-    data = load(args.yaml_file)
-    json.dump(data, args.json_file, sort_keys=args.sort, indent=args.indent)
-
-    if args.json_file is sys.stdout:
-        print()
-
-def merge(args):
-    yaixm = load(args.input_file)
-    airspace = yaixm['airspace']
-    loa = yaixm['loa']
-
-    loa_names = [x.strip() for x in args.merge.split(",")]
-
-    if loa_names[0]:
-        loa = [x for x in loa if x['name'] in loa_names]
-
-    merged = {'airspace': merge_loa(airspace, loa)}
-
-    json.dump(merged, args.output_file, sort_keys=True, indent=4)
-
-
 # Convert either yaxim or openair file to GIS format
 def gis(args):
     # Load airspace
