@@ -101,14 +101,6 @@ def cli():
                             help="ATZ radius, in nm (default 2)")
     sub_parser.set_defaults(func=yaixm.cli_util.calc_ils)
 
-    # point sub-command
-    sub_parser = subparsers.add_parser('point', help='calculate offset point')
-    sub_parser.add_argument("lat", help="Centre latitude, DMS e.g. 512345N")
-    sub_parser.add_argument("lon", help="Centre longitude, DMS e.g. 0012345W")
-    sub_parser.add_argument("bearing", type=float, help="Degrees (true)")
-    sub_parser.add_argument("distance", type=float, help="Distance (nm)")
-    sub_parser.set_defaults(func=yaixm.cli_util.calc_point)
-
     # stub sub-command
     sub_parser = subparsers.add_parser('stub', help='calculate MATZ stub coordinates')
     sub_parser.add_argument("lat", help="Centre latitude, DMS e.g. 512345N")

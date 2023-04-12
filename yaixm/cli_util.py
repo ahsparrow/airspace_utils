@@ -44,16 +44,6 @@ def calc_ils(args):
         p = centre.destination(d, b)
         print("- %s" % p.toStr(form="sec", prec=0, sep=" "))
 
-def calc_point(args):
-    lon = parse_deg(args.lon)
-    lat = parse_deg(args.lat)
-    origin = LatLon(lat, lon)
-
-    dist = args.distance * 1852
-
-    p = origin.destination(dist, args.bearing)
-    print(p.toStr(form="sec", prec=0, sep=" "))
-
 def calc_stub(args):
     lon = parse_deg(args.lon)
     lat = parse_deg(args.lat)
