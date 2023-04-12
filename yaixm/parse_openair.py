@@ -1,12 +1,10 @@
 from lark import Lark, Transformer
 
-grammer = '''
+grammer = """
     ?start: feature_list
     feature_list: feature+
 
-    feature: airtype airname freq? geometry_list
-    geometry_list: geometry+
-    geometry: lower upper boundary
+    feature: airtype airname (freq? upper lower | freq? lower upper | upper lower freq | lower upper freq) boundary
 
     airtype: "AC" _WS_INLINE+ AIRTYPE _NEWLINE
     airname: "AN" _WS_INLINE+ NAME_STRING _NEWLINE
@@ -40,7 +38,6 @@ grammer = '''
     SFC: "SFC"
 
     FREQ: DIGIT~3 "." DIGIT~3
-    %ignore FREQ
 
     RADIUS: NUMBER
     DIRECTION: ("+" | "-")
@@ -62,15 +59,16 @@ grammer = '''
     %import common.NEWLINE
     %import common.NUMBER
     %import common.WS_INLINE
-'''
+"""
+
 
 class OpenairTransformer(Transformer):
     def LAT_LON(self, latlon):
-        t = latlon.replace(':', '').replace(' ', '')
+        t = latlon.replace(":", "").replace(" ", "")
         return t[:7] + " " + t[7:]
 
     def DIRECTION(self, dirn):
-        return "cw" if dirn == '+' else 'ccw'
+        return "cw" if dirn == "+" else "ccw"
 
     def RADIUS(self, r):
         return r + " nm"
@@ -90,51 +88,51 @@ class OpenairTransformer(Transformer):
     def AIRTYPE(self, str):
         return str.value
 
+    def FREQ(self, str):
+        return str.value
+
     def limits(self, data):
-        return 'to', data[1]
+        return "to", data[1]
 
     def dir(self, data):
-        return 'dir', data[0]
+        return "dir", data[0]
 
     def radius(self, tree):
-        return ('radius', tree[0])
+        return ("radius", tree[0])
 
     def centre(self, tree):
-        return 'centre', tree[0]
+        return "centre", tree[0]
 
     def arc(self, tree):
-        return 'arc', dict(tree)
+        return "arc", dict(tree)
 
     def circle(self, tree):
-        return 'circle', dict(tree)
+        return "circle", dict(tree)
 
     def line(self, tree):
-        return 'line', tree
+        return "line", tree
 
     def boundary(self, tree):
-        return 'boundary', [dict([x]) for x in tree]
+        return "boundary", [dict([x]) for x in tree]
 
     def upper(self, data):
-        return 'upper', data[0]
+        return "upper", data[0]
 
     def lower(self, data):
-        return 'lower', data[0]
+        return "lower", data[0]
 
     def airname(self, data):
-        return 'name', data[0]
+        return "name", data[0]
 
     def airtype(self, data):
-        return 'type', data[0]
+        return "type", data[0]
 
     def freq(self, data):
         return "freq", data[0]
 
-    geometry = dict
-    def geometry_list(self, tree):
-        return 'geometry', tree
-
     feature = dict
     feature_list = list
+
 
 def parse(data):
     parser = Lark(grammer)

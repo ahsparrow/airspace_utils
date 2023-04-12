@@ -1,4 +1,4 @@
-# Copyright 2017 Alan Sparrow
+# Copyright 2023 Alan Sparrow
 #
 # This file is part of YAIXM
 #
@@ -22,11 +22,10 @@ import subprocess
 import sys
 
 from geopandas import GeoDataFrame
-from pyogrio import write_dataframe
 
 from .convert import Openair, seq_name, make_filter, make_openair_type
 from .helpers import get_airac_date, level, load, merge_loa, merge_service, validate
-from .geojson import boundary_polygon
+from yaixm.boundary import boundary_polygon
 from .parse_openair import parse as parse_openair
 from yaixm.yaixm import load_airspace
 
