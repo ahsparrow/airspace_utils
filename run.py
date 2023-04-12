@@ -126,16 +126,6 @@ def cli():
                             help="ATZ radius, in nm (default 2)")
     sub_parser.set_defaults(func=yaixm.cli_util.calc_ils)
 
-    # obstacle sub-command
-    sub_parser = subparsers.add_parser('obstacle', help='convert obstacles')
-    sub_parser.add_argument("obstacle_xls", help="ENR obstacle XLS data")
-    sub_parser.add_argument("names", help="CSV file with id, name",
-                            type=argparse.FileType("r"))
-    sub_parser.add_argument("yaml_file", nargs="?",
-                            help="YAML output file, stdout if not specified",
-                            type=argparse.FileType("w"), default=sys.stdout)
-    sub_parser.set_defaults(func=yaixm.cli_util.convert_obstacle)
-
     # point sub-command
     sub_parser = subparsers.add_parser('point', help='calculate offset point')
     sub_parser.add_argument("lat", help="Centre latitude, DMS e.g. 512345N")

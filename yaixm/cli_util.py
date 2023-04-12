@@ -28,34 +28,6 @@ from pygeodesy.ellipsoidalVincenty import LatLon
 import yaml
 
 from .helpers import ordered_map_representer, parse_deg
-from .obstacle import make_obstacles
-
-# Convert obstacle data XLS spreadsheet from AIS to YAXIM format
-def convert_obstacle(args):
-    # Using temporary working directory
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        # Convert xls to xlsx
-        subprocess.run(["libreoffice",
-             "--convert-to", "xlsx",
-             "--outdir", tmp_dir,
-             args.obstacle_xls], errors=True)
-
-        base_xls = os.path.basename(args.obstacle_xls)
-        base_xlsx = os.path.splitext(base_xls)[0] + ".xlsx"
-        xlsx_name = os.path.join(tmp_dir, base_xlsx)
-
-        # Convert xlsx to CSV
-        csv_name = os.path.join(tmp_dir, "obstacle.csv")
-        subprocess.run(["xlsx2csv",
-                        "--sheetname" , "All", xlsx_name, csv_name],
-                       errors=True)
-
-        obstacles = make_obstacles(open(csv_name), args.names)
-
-    # Write to YAML file
-    yaml.add_representer(dict, ordered_map_representer)
-    yaml.dump({'obstacle': obstacles},
-              args.yaml_file, default_flow_style=False)
 
 def calc_ils(args):
     lon = parse_deg(args.lon)
