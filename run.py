@@ -18,18 +18,15 @@ def cli():
                             type=argparse.FileType("r"), default=sys.stdin)
     sub_parser.set_defaults(func=yaixm.cli.check)
 
-    # geojson sub-command
-    sub_parser = subparsers.add_parser('geojson', help='convert to GeoJSON')
-    sub_parser.add_argument("airspace_file", nargs="?",
-                            help="airspace file (YAIXM or Openair)",
-                            type=argparse.FileType("r"), default=sys.stdin)
-    sub_parser.add_argument("geojson_file", nargs="?",
-                            help="GeoJSON output file, stdout if not specified",
-                            type=argparse.FileType("wb"),
-                            default=sys.stdout)
+    # convert sub-command
+    sub_parser = subparsers.add_parser('gis', help='convert to GIS format')
+    sub_parser.add_argument("airspace_filepath",
+                            help="airspace file (YAIXM or Openair)")
+    sub_parser.add_argument("gis_filepath",
+                            help="GIS output file")
     sub_parser.add_argument("-r", "--resolution", type=int, default=15,
-                            help="Angular resolution, per 90 degrees")
-    sub_parser.set_defaults(func=yaixm.cli.geojson)
+                            help="angular resolution, per 90 degrees")
+    sub_parser.set_defaults(func=yaixm.cli.gis)
 
     # json sub-command
     sub_parser = subparsers.add_parser('json', help='convert to JSON')

@@ -21,10 +21,14 @@ import os
 import subprocess
 import sys
 
+from geopandas import GeoDataFrame
+from pyogrio import write_dataframe
+
 from .convert import Openair, seq_name, make_filter, make_openair_type
 from .helpers import get_airac_date, level, load, merge_loa, merge_service, validate
-from .geojson import geojson as convert_geojson
+from .geojson import boundary_polygon
 from .parse_openair import parse as parse_openair
+from yaixm.yaixm import load_airspace
 
 HEADER = """UK Airspace
 Alan Sparrow (airspace@asselect.uk)
@@ -80,20 +84,23 @@ def merge(args):
 
     json.dump(merged, args.output_file, sort_keys=True, indent=4)
 
-def geojson(args):
+
+# Convert either yaxim or openair file to GIS format
+def gis(args):
     # Load airspace
-    if args.airspace_file.name.endswith('yaml'):
+    if args.airspace_filepath.endswith('yaml'):
         # YAML input
-        airspace = load(args.airspace_file)
+        airspace = load_airspace(args.airspace_filepath)
     else:
         # Openair input
         airspace = {'airspace': parse_openair(args.airspace_file.read())}
 
-    # Convert to GeoDataFrame
-    df = convert_geojson(airspace['airspace'], resolution=args.resolution)
+    airspace["geometry"] = airspace["boundary"].apply(lambda x: boundary_polygon(x, resolution=args.resolution))
+    airspace = airspace.drop("boundary", axis=1)
 
-    # Write to GeoJSON file
-    df.to_file(args.geojson_file, driver="GeoJSON")
+    # Convert to GeoDataFrame and write to file
+    df = GeoDataFrame(airspace, crs="EPSG:4326")
+    write_dataframe(df, args.gis_filepath)
 
 
 def navplot(args):
