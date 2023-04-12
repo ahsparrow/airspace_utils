@@ -22,7 +22,7 @@ from pyproj import Transformer
 from pyproj.enums import TransformDirection
 from shapely import Polygon
 
-from yaixm.utils import parse_latlon
+from yaixm.util import parse_latlon
 
 TransformerFromCrs = lru_cache(Transformer.from_crs)
 

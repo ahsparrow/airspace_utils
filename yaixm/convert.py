@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with YAIXM.  If not, see <http://www.gnu.org/licenses/>.
 
-from yaixm.utils import parse_latlon, normlevel, minmax_lat, dms
+from yaixm.util import parse_latlon, normlevel, minmax_lat, dms
 
 OBSTACLE_TYPES = {
    'BLDG': "BUILDING",

@@ -22,11 +22,12 @@ import subprocess
 import sys
 
 from geopandas import GeoDataFrame
+import yaml
 
-from yaixm.convert import Openair, seq_name, make_filter, make_openair_type
-from yaixm.utils import get_airac_date, normlevel, load, merge_loa, merge_service, validate
 from yaixm.boundary import boundary_polygon
+from yaixm.convert import Openair, seq_name, make_filter, make_openair_type
 from yaixm.parse_openair import parse as parse_openair
+from yaixm.util import get_airac_date, normlevel, load, merge_loa, merge_service, validate
 from yaixm.yaixm import load_airspace
 
 HEADER = """UK Airspace
@@ -36,15 +37,17 @@ To the extent possible under law Alan Sparrow has waived all
 copyright and related or neighbouring rights to this file. The data
 is sourced from the UK Aeronautical Information Package (AIP)\n\n"""
 
+
 def check(args):
     # Load airspace
-    airspace = load(args.airspace_file)
+    airspace = yaml.load(open(args.airspace_filepath), Loader=yaml.CLoader)
 
     # Validate and write any errors to stderr
     e = validate(airspace)
     if e:
         print(e.message, file=sys.stderr)
         sys.exit(1)
+
 
 def openair(args):
     # Load airspace

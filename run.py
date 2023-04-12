@@ -13,9 +13,7 @@ def cli():
 
     # check sub-command
     sub_parser = subparsers.add_parser('check', help='check against schema')
-    sub_parser.add_argument("airspace_file", nargs="?",
-                            help="YAML airspace file",
-                            type=argparse.FileType("r"), default=sys.stdin)
+    sub_parser.add_argument("airspace_filepath", help="YAML airspace file")
     sub_parser.set_defaults(func=yaixm.cli.check)
 
     # convert sub-command

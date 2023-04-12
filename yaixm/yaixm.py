@@ -18,10 +18,10 @@
 import pandas
 import yaml
 
-from yaixm.utils import normlevel
+from yaixm.util import normlevel
 
 def load_airspace(path):
-    data = yaml.load(open(path).read(), Loader=yaml.CLoader)
+    data = yaml.load(open(path), Loader=yaml.CLoader)
 
     airspace_dict = [
         {
