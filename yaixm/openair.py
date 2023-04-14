@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with YAIXM.  If not, see <http://www.gnu.org/licenses/>.
 
+from enum import StrEnum
 import math
 
 import numpy as np
@@ -28,38 +29,88 @@ LATLON_FMT = (
 )
 
 
-def name_func(append_freq=False, append_seqno=False):
-    def func(volume):
-        if volume["name"]:
-            name = volume["name"]
-        else:
-            name = volume['feature_name']
+class Type(StrEnum):
+    A = "A"
+    D = "D"
+    E = "E"
+    F = "F"
+    G = "G"
+    CTR = "CTR"
+    DANGER = "Q"
+    PROHIBITED = "P"
+    RESTRICTED = "R"
+    W = "W"
 
-            if (localtype := volume['localtype']):
-                if localtype in ["NOATZ", "UL"]:
-                    name += " A/F"
-                elif localtype in ["MATZ", "DZ", "GVS", "HIRTA", "ILS", "LASER"]:
-                    name += " " + localtype
 
-            elif volume['type'] == "ATZ":
-                name += " ATZ"
+def namer(volume, append_freq, append_seqno):
+    if volume["name"]:
+        name = volume["name"]
+    else:
+        name = volume["feature_name"]
 
-            elif "RAZ" in volume["rules"]:
-                name += " " + "RAZ"
+        if localtype := volume["localtype"]:
+            if localtype in ["NOATZ", "UL"]:
+                name += " A/F"
+            elif localtype in ["MATZ", "DZ", "GVS", "HIRTA", "ILS", "LASER"]:
+                name += " " + localtype
 
-            if append_seqno and (seqno := volume["seqno"]):
-                name += f"-{seqno}"
+        elif volume["type"] == "ATZ":
+            name += " ATZ"
 
-            qualifiers = [q for q in ["SI", "NOTAM"] if q in volume["rules"]]
-            if qualifiers:
-                name += f" ({'/'.join(qualifiers)})"
+        elif "RAZ" in volume["rules"]:
+            name += " " + "RAZ"
 
-        if append_freq and not math.isnan(volume["frequency"]):
-            name += f" {volume['frequency']:.3f}"
+        if append_seqno and (seqno := volume["seqno"]):
+            name += f"-{seqno}"
 
-        return name
+        qualifiers = [q for q in ["SI", "NOTAM"] if q in volume["rules"]]
+        if qualifiers:
+            name += f" ({'/'.join(qualifiers)})"
 
-    return func
+    if append_freq and not math.isnan(volume["frequency"]):
+        name += f" {volume['frequency']:.3f}"
+
+    return name
+
+
+def typer(volume, types, format):
+    if "NOTAM" in volume["rules"]:
+        out = "G"
+        return
+
+    comp = format == "competition"
+    match volume["type"]:
+        case "ATZ":
+            out = types["atz"].value
+        case "D":
+            out = "P" if comp and "SI" in volume["rule"] else "Q"
+        case "D_OTHER":
+            if volume["localtype"] == "GLIDER":
+                out = "W"
+            elif comp and volume["localtype"] == "DZ" and "INTENSE" in volume["rules"]:
+                out = "P"
+            elif volume["localtype"] in ["HIRTA", "GVS", "LASER"]:
+                out = types["hirta"].value
+            else:
+                out = "Q"
+        case "OTHER":
+            match volume["localtype"]:
+                case "GLIDER":
+                    out = "W" if "LOA" in volume["rules"] else types["glider"].value
+                case "ILS" | "NOATZ" | "UL" as oatype:
+                    out = types[oatype.lower()].value
+                case "MATZ" | "TMZ" | "RMZ" as oatype:
+                    out = oatype
+                case "RAT":
+                    out = "P"
+                case _:
+                    out = "OTHER"
+        case "P" | "R" | "TMZ" | "RMZ" as oatype:
+            out = oatype
+        case _:
+            out = volume["class"]
+
+    return out
 
 
 def level(level_str):
@@ -76,12 +127,14 @@ def latlon(latlon_str):
     return LATLON_FMT.format(dms(lat), dms(lon))
 
 
-def openair_type(vol):
-    yield f"AC {vol['type']}"
+def openair_type(vol, types, format):
+    oa_type = typer(vol, types, format)
+    yield f"AC {oa_type}"
 
 
-def openair_name(vol, name_func):
-    yield f"AN {name_func(vol)}"
+def openair_name(vol, append_freq, format):
+    name = namer(vol, append_freq, format == "competition")
+    yield f"AN {name}"
 
 
 def openair_frequency(vol):
@@ -132,7 +185,16 @@ def openair_boundary(boundary):
         yield from openair_point(first_point)
 
 
-def openair(data, append_freq=False, append_seqno=False):
+def openair(
+    data,
+    types,
+    format="openair",
+    max_level=19500,
+    append_freq=False,
+    loa=[],
+    wave=[],
+    rat=[],
+):
     airspace = yaixm.yaixm.load_airspace(data["airspace"])
     service = yaixm.yaixm.load_service(data["service"])
 
@@ -142,8 +204,8 @@ def openair(data, append_freq=False, append_seqno=False):
 
     for _, a in airspace.iterrows():
         yield "*"
-        yield from openair_type(a)
-        yield from openair_name(a, name_func(append_freq, append_seqno))
+        yield from openair_type(a, types, format)
+        yield from openair_name(a, append_freq, format)
         yield from openair_frequency(a)
         yield f"AL {level(a['lower'])}"
         yield f"AH {level(a['upper'])}"
@@ -159,4 +221,13 @@ if __name__ == "__main__":
 
     data = airspace | service
 
-    print("\n".join(openair(data)))
+    types = {
+        "atz": Type.CTR,
+        "ils": Type.G,
+        "noatz": Type.F,
+        "ul": Type.F,
+        "hirta": Type.G,
+        "glider": Type.W,
+    }
+
+    print("\n".join(openair(data, types)))
