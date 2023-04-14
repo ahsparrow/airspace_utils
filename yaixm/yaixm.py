@@ -21,9 +21,7 @@ import yaml
 from yaixm.util import normlevel
 
 
-def load_airspace(path):
-    data = yaml.load(open(path), Loader=yaml.CLoader)
-
+def load_airspace(data):
     airspace_dict = [
         {
             "boundary": volume["boundary"],
@@ -33,15 +31,48 @@ def load_airspace(path):
             "id": volume.get("id"),
             "localtype": feature.get("localtype"),
             "lower": volume["lower"],
-            "name": volume.get("name") or feature["name"],
+            "name": volume.get("name"),
             "normlower": normlevel(volume["lower"]),
             "rules": ",".join(feature.get("rules", []) + volume.get("rules", [])),
-            "seqno": str(s) if (s := volume.get("seqno")) else None,
+            "seqno": str(s) if (s := volume.get("seqno")) else "ABCDEFGHIJKLM"[n] if len(feature["geometry"]) > 1 else None,
             "type": feature["type"],
             "upper": volume["upper"],
         }
-        for feature in data["airspace"]
-        for volume in feature["geometry"]
+        for feature in data
+        for n, volume in enumerate(feature["geometry"])
     ]
 
     return pandas.DataFrame(airspace_dict)
+
+
+def load_service(data):
+    service_dict = [
+        {"id": control, "frequency": service["frequency"]}
+        for service in data
+        for control in service["controls"]
+    ]
+
+    return pandas.DataFrame(service_dict)
+
+
+def load_loa(data):
+    loa_dict = [
+        {
+            "boundary": volume["boundary"],
+            "class": feature.get("class"),
+            "loa_name": loa["name"],
+            "localtype": feature.get("localtype"),
+            "lower": volume["lower"],
+            "name": volume.get("name") or feature["name"],
+            "normlower": normlevel(volume["lower"]),
+            "rules": feature.get("rules", []) + volume.get("rules", []),
+            "type": feature["type"],
+            "upper": volume["upper"],
+        }
+        for loa in data
+        for area in loa["areas"]
+        for feature in area["add"]
+        for volume in feature["geometry"]
+    ]
+
+    return pandas.DataFrame(loa_dict)

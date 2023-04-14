@@ -87,22 +87,9 @@ DMS_RE = re.compile(DMS_PATTERN)
 NM_TO_DEGREES = 1 / 60
 
 
-# Load data from either YAML or JSON
-def load(stream, json=False):
-    if json:
-        if hasattr(stream, "read"):
-            data = _json.load(stream)
-        else:
-            data = _json.loads(stream)
-    else:
-        data = yaml.load(stream, Loader=Loader)
-
-    return data
-
-
 # Check airspace against schema
 def validate(yaixm):
-    schema = load(pkg_resources.resource_string(__name__, "data/schema.yaml"))
+    schema = yaml.safe_load(pkg_resources.resource_string(__name__, "data/schema.yaml"))
 
     try:
         jsonschema.validate(yaixm, schema, format_checker=jsonschema.FormatChecker())

@@ -30,7 +30,6 @@ from yaixm.parse_openair import parse as parse_openair
 from yaixm.util import (
     get_airac_date,
     normlevel,
-    load,
     merge_loa,
     merge_service,
     validate,
@@ -47,7 +46,7 @@ is sourced from the UK Aeronautical Information Package (AIP)\n\n"""
 
 def check(args):
     # Load airspace
-    airspace = yaml.load(open(args.airspace_filepath), Loader=yaml.CLoader)
+    airspace = yaml.safe_load(open(args.airspace_filepath))
 
     # Validate and write any errors to stderr
     e = validate(airspace)
@@ -78,7 +77,9 @@ def gis(args):
     # Load airspace
     if args.airspace_filepath.endswith("yaml"):
         # YAML input
-        airspace = load_airspace(args.airspace_filepath)
+        with open(args.airspace_filepath) as f:
+            data = yaml.safe_load(f)
+            airspace = load_airspace(data["airspace"])
     else:
         # Openair input
         airspace = {"airspace": parse_openair(args.airspace_file.read())}
@@ -95,7 +96,9 @@ def gis(args):
 
 def navplot(args):
     # Load airspace
-    airspace = load_airspace(args.airspace_filepath)
+    with open(args.airspace_filepath) as f:
+        data = yaml.safe_load(f)
+        airspace = load_airspace(data["airspace"])
 
     navplot_airspace = airspace[
         (
@@ -120,7 +123,8 @@ def release(args):
     # Aggregate YAIXM files
     out = {}
     for f in ["airspace", "loa", "obstacle", "rat", "service"]:
-        out.update(load(open(os.path.join(args.yaixm_dir, f + ".yaml"))))
+        with open(os.path.join(args.yaixm_dir, f + ".yaml")) as f:
+            out.update(yaml.safe_load(f))
 
     # Append release header
     header = {
