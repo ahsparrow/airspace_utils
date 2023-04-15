@@ -237,15 +237,21 @@ def openair(
 ):
     airspace = yaixm.yaixm.load_airspace(data["airspace"])
     service = yaixm.yaixm.load_service(data["service"])
+    rats = yaixm.yaixm.load_airspace(data["rat"])
 
-    # Merge frequencies
-    service.rename(columns={"id": "feature_id"}, inplace=True)
-    airspace = pandas.merge(airspace, service, on="feature_id", how="left")
+    # Add RATs
+    airspace = pandas.concat(
+        [airspace, rats[rats["feature_name"].map(lambda x: x in rat)]]
+    )
 
     # Filter airspace
     airspace = airspace[
         airspace.apply(make_filter(types, max_level, home, wave=wave), axis=1)
     ]
+
+    # Merge frequencies
+    service.rename(columns={"id": "feature_id"}, inplace=True)
+    airspace = pandas.merge(airspace, service, on="feature_id", how="left")
 
     for _, a in airspace.iterrows():
         yield "*"
@@ -263,8 +269,9 @@ if __name__ == "__main__":
 
     airspace = yaml.safe_load(open("/home/ahs/src/airspace/airspace.yaml"))
     service = yaml.safe_load(open("/home/ahs/src/airspace/service.yaml"))
+    rat = yaml.safe_load(open("/home/ahs/src/airspace/rat.yaml"))
 
-    data = airspace | service
+    data = airspace | service | rat
 
     types = {
         "atz": Type.CTR,
@@ -275,6 +282,11 @@ if __name__ == "__main__":
         "glider": Type.W,
     }
 
+    rat = ["OLD WARDEN (VARIOUS DATES)"]
     wave = ["TRAG SCOTLAND UPPER"]
 
-    print("\n".join(openair(data, types, max_level=66000, home="RIVAR HILL", wave=wave)))
+    print(
+        "\n".join(
+            openair(data, types, max_level=66000, home="RIVAR HILL", rat=rat, wave=wave)
+        )
+    )
