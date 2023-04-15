@@ -113,6 +113,45 @@ def typer(volume, types, format):
     return out
 
 
+def make_filter(types, max_level, home, wave):
+    def func(data):
+        exc = False
+
+        # Training airfields
+        exc = exc or data["localtype"] == "NOATZ" and types["noatz"] == None
+
+        # Microlight strips
+        exc = exc or data["localtype"] == "UL" and types["ul"] == None
+
+        # HIRTAs, etc
+        exc = exc or (
+            data["localtype"] in ["HIRTA", "GVS", "LASER"] and types["hirta"] == None
+        )
+
+        # Gliding sites
+        exc = exc or (
+            data["type"] == "OTHER"
+            and data["localtype"] == "GLIDER"
+            and not "LOA" in data["rules"]
+            and (types["glider"] == None or home == data["feature_name"])
+        )
+
+        # Maximum level
+        exc = exc or data["normlower"] >= max_level
+
+        # Wave boxes (excluded by default)
+        exc = exc or (
+            data["type"] == "D_OTHER"
+            and data["localtype"] == "GLIDER"
+            and "LOA" not in data["rules"]
+            and data["feature_name"] not in wave
+        )
+
+        return not exc
+
+    return func
+
+
 def level(level_str):
     if level_str.endswith("ft"):
         # Altitud
@@ -189,6 +228,7 @@ def openair(
     data,
     types,
     format="openair",
+    home="",
     max_level=19500,
     append_freq=False,
     loa=[],
@@ -201,6 +241,11 @@ def openair(
     # Merge frequencies
     service.rename(columns={"id": "feature_id"}, inplace=True)
     airspace = pandas.merge(airspace, service, on="feature_id", how="left")
+
+    # Filter airspace
+    airspace = airspace[
+        airspace.apply(make_filter(types, max_level, home, wave=wave), axis=1)
+    ]
 
     for _, a in airspace.iterrows():
         yield "*"
@@ -225,9 +270,11 @@ if __name__ == "__main__":
         "atz": Type.CTR,
         "ils": Type.G,
         "noatz": Type.F,
-        "ul": Type.F,
-        "hirta": Type.G,
+        "ul": None,
+        "hirta": None,
         "glider": Type.W,
     }
 
-    print("\n".join(openair(data, types)))
+    wave = ["TRAG SCOTLAND UPPER"]
+
+    print("\n".join(openair(data, types, max_level=66000, home="RIVAR HILL", wave=wave)))
