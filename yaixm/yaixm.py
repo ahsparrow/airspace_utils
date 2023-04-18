@@ -53,26 +53,3 @@ def load_service(data):
     ]
 
     return pandas.DataFrame(service_dict)
-
-
-def load_loa(data):
-    loa_dict = [
-        {
-            "boundary": volume["boundary"],
-            "class": feature.get("class"),
-            "loa_name": loa["name"],
-            "localtype": feature.get("localtype"),
-            "lower": volume["lower"],
-            "name": volume.get("name") or feature["name"],
-            "normlower": normlevel(volume["lower"]),
-            "rules": feature.get("rules", []) + volume.get("rules", []),
-            "type": feature["type"],
-            "upper": volume["upper"],
-        }
-        for loa in data
-        for area in loa["areas"]
-        for feature in area["add"]
-        for volume in feature["geometry"]
-    ]
-
-    return pandas.DataFrame(loa_dict)

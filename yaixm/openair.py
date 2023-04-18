@@ -224,6 +224,37 @@ def openair_boundary(boundary):
         yield from openair_point(first_point)
 
 
+def merge_loa(airspace, loa_data):
+    # Add new features
+    add = [
+        yaixm.yaixm.load_airspace(area["add"])
+        for loa in loa_data
+        for area in loa["areas"]
+    ]
+    airspace = pandas.concat([airspace] + add)
+
+    # Replace existing volumes
+    replace_vols = []
+    for loa in loa_data:
+        for area in loa["areas"]:
+            for replace in area.get("replace", []):
+                # Volume to be replaced
+                vol = airspace[airspace["id"] == replace["id"]].iloc[0]
+
+                # Remove it
+                airspace = airspace[airspace["id"] != replace["id"]]
+
+                # Make new volumes
+                dfs = []
+                for v in replace["geometry"]:
+                    vol["boundary"] = v["boundary"]
+                    vol["upper"] = v["upper"]
+                    vol["lower"] = v["lower"]
+                    replace_vols.append(vol.copy())
+
+    return pandas.concat([airspace, pandas.DataFrame(replace_vols)])
+
+
 def openair(
     data,
     types,
@@ -231,22 +262,26 @@ def openair(
     home="",
     max_level=19500,
     append_freq=False,
-    loa=[],
-    wave=[],
-    rat=[],
+    loa_names=[],
+    wave_names=[],
+    rat_names=[],
 ):
     airspace = yaixm.yaixm.load_airspace(data["airspace"])
     service = yaixm.yaixm.load_service(data["service"])
     rats = yaixm.yaixm.load_airspace(data["rat"])
 
+    # Merge selected LOAs
+    loa_data = list(filter(lambda x: x["name"] in loa_names, data["loa"]))
+    airspace = merge_loa(airspace, loa_data)
+
     # Add RATs
     airspace = pandas.concat(
-        [airspace, rats[rats["feature_name"].map(lambda x: x in rat)]]
+        [airspace, rats[rats["feature_name"].map(lambda x: x in rat_names)]]
     )
 
     # Filter airspace
     airspace = airspace[
-        airspace.apply(make_filter(types, max_level, home, wave=wave), axis=1)
+        airspace.apply(make_filter(types, max_level, home, wave=wave_names), axis=1)
     ]
 
     # Merge frequencies
@@ -270,8 +305,9 @@ if __name__ == "__main__":
     airspace = yaml.safe_load(open("/home/ahs/src/airspace/airspace.yaml"))
     service = yaml.safe_load(open("/home/ahs/src/airspace/service.yaml"))
     rat = yaml.safe_load(open("/home/ahs/src/airspace/rat.yaml"))
+    loa = yaml.safe_load(open("/home/ahs/src/airspace/loa.yaml"))
 
-    data = airspace | service | rat
+    data = airspace | service | rat | loa
 
     types = {
         "atz": Type.CTR,
@@ -282,11 +318,20 @@ if __name__ == "__main__":
         "glider": Type.W,
     }
 
-    rat = ["OLD WARDEN (VARIOUS DATES)"]
-    wave = ["TRAG SCOTLAND UPPER"]
+    rat_names = []
+    wave_names = []
+    loa_names = ["BATH GAP"]
 
-    print(
-        "\n".join(
-            openair(data, types, max_level=66000, home="RIVAR HILL", rat=rat, wave=wave)
+    oa = "".join(
+        f"{line}\n"
+        for line in openair(
+            data,
+            types,
+            max_level=66000,
+            home="RIVAR HILL",
+            loa_names=loa_names,
+            rat_names=rat_names,
+            wave_names=wave_names,
         )
     )
+    print(oa)
