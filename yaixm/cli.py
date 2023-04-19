@@ -22,11 +22,11 @@ import subprocess
 import sys
 
 from geopandas import GeoDataFrame
+import pandas
 import yaml
 
 from yaixm.boundary import boundary_polygon
-from yaixm.parse_openair import parse as parse_openair
-from yaixm.openair import Type, default_openair, openair
+from yaixm.openair import Type, default_openair, openair, parse as parse_openair
 from yaixm.util import (
     get_airac_date,
     normlevel,
@@ -76,14 +76,14 @@ def openair(args):
 # Convert either yaxim or openair file to GIS format
 def gis(args):
     # Load airspace
-    if args.airspace_filepath.endswith("yaml"):
-        # YAML input
-        with open(args.airspace_filepath) as f:
+    with open(args.airspace_filepath) as f:
+        if args.airspace_filepath.endswith("yaml"):
+            # YAML input
             data = yaml.safe_load(f)
             airspace = load_airspace(data["airspace"])
-    else:
-        # Openair input
-        airspace = {"airspace": parse_openair(args.airspace_file.read())}
+        else:
+            # Openair input
+            airspace = pandas.DataFrame(parse_openair(f.read()))
 
     airspace["geometry"] = airspace["boundary"].apply(
         lambda x: boundary_polygon(x, resolution=args.resolution)
