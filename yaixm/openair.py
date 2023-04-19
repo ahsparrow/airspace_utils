@@ -335,7 +335,8 @@ def default_openair(data):
         "hirta": None,
         "glider": Type.W,
     }
-    return openair(data, types, append_freq=True, loa_names=["CAMBRIDGE RAZ"])
+    loa_names = [loa["name"] for loa in data["loa"] if loa.get("default")]
+    return openair(data, types, append_freq=True, loa_names=loa_names)
 
 
 if __name__ == "__main__":
