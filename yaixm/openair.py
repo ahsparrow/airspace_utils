@@ -68,7 +68,7 @@ def namer(volume, append_freq, append_seqno):
             name += f" ({'/'.join(qualifiers)})"
 
     if append_freq and not math.isnan(volume["frequency"]):
-        name += f" {volume['frequency']:.3f}"
+        name += f" {volume['frequency']:.03f}"
 
     return name
 
@@ -76,39 +76,46 @@ def namer(volume, append_freq, append_seqno):
 def typer(volume, types, format):
     if "NOTAM" in volume["rules"]:
         out = "G"
-        return
-
-    comp = format == "competition"
-    match volume["type"]:
-        case "ATZ":
-            out = types["atz"].value
-        case "D":
-            out = "P" if comp and "SI" in volume["rule"] else "Q"
-        case "D_OTHER":
-            if volume["localtype"] == "GLIDER":
-                out = "W"
-            elif comp and volume["localtype"] == "DZ" and "INTENSE" in volume["rules"]:
-                out = "P"
-            elif volume["localtype"] in ["HIRTA", "GVS", "LASER"]:
-                out = types["hirta"].value
-            else:
-                out = "Q"
-        case "OTHER":
-            match volume["localtype"]:
-                case "GLIDER":
-                    out = "W" if "LOA" in volume["rules"] else types["glider"].value
-                case "ILS" | "NOATZ" | "UL" as oatype:
-                    out = types[oatype.lower()].value
-                case "MATZ" | "TMZ" | "RMZ" as oatype:
-                    out = oatype
-                case "RAT":
+    elif "TMZ" in volume["rules"]:
+        out = "TMZ"
+    elif "RMZ" in volume["rules"]:
+        out = "RMZ"
+    else:
+        comp = format == "competition"
+        match volume["type"]:
+            case "ATZ":
+                out = types["atz"].value
+            case "D":
+                out = "P" if comp and "SI" in volume["rule"] else "Q"
+            case "D_OTHER":
+                if volume["localtype"] == "GLIDER":
+                    out = "W"
+                elif (
+                    comp
+                    and volume["localtype"] == "DZ"
+                    and "INTENSE" in volume["rules"]
+                ):
                     out = "P"
-                case _:
-                    out = "OTHER"
-        case "P" | "R" | "TMZ" | "RMZ" as oatype:
-            out = oatype
-        case _:
-            out = volume["class"]
+                elif volume["localtype"] in ["HIRTA", "GVS", "LASER"]:
+                    out = types["hirta"].value
+                else:
+                    out = "Q"
+            case "OTHER":
+                match volume["localtype"]:
+                    case "GLIDER":
+                        out = "W" if "LOA" in volume["rules"] else types["glider"].value
+                    case "ILS" | "NOATZ" | "UL" as oatype:
+                        out = types[oatype.lower()].value
+                    case "MATZ" | "TMZ" | "RMZ" as oatype:
+                        out = oatype
+                    case "RAT":
+                        out = "P"
+                    case _:
+                        out = "OTHER"
+            case "P" | "R" | "TMZ" | "RMZ" as oatype:
+                out = oatype
+            case _:
+                out = volume["class"]
 
     return out
 
@@ -179,7 +186,7 @@ def openair_name(vol, append_freq, format):
 def openair_frequency(vol):
     freq = vol["frequency"]
     if not math.isnan(freq):
-        yield (f"AF {freq}")
+        yield (f"AF {freq:.03f}")
 
 
 def openair_point(point):
@@ -195,7 +202,7 @@ def openair_circle(circle):
 
 
 def openair_arc(arc, prev):
-    yield "V D+" if arc["dir"] == "cw" else "V D-"
+    yield "V D=+" if arc["dir"] == "cw" else "V D=-"
     yield f"V X={latlon(arc['centre'])}"
     yield f"DB {latlon(prev)}, {latlon(arc['to'])}"
 
@@ -208,16 +215,16 @@ def openair_boundary(boundary):
     for segment in boundary:
         match segment:
             case {"line": points}:
-                last_point = points[-1]
                 for point in points:
                     yield from openair_point(point)
+                last_point = points[-1]
 
             case {"circle": circle}:
                 yield from openair_circle(circle)
 
             case {"arc": arc}:
-                last_point = arc["to"]
                 yield from openair_arc(arc, last_point)
+                last_point = arc["to"]
 
     # Close the polygon if necessary
     if first_point and first_point != last_point:
@@ -255,16 +262,8 @@ def merge_loa(airspace, loa_data):
     return pandas.concat([airspace, pandas.DataFrame(replace_vols)])
 
 
-def openair(
-    data,
-    types,
-    format="openair",
-    home="",
-    max_level=19500,
-    append_freq=False,
-    loa_names=[],
-    wave_names=[],
-    rat_names=[],
+def openair_generator(
+    data, types, format, home, max_level, append_freq, loa_names, wave_names, rat_names
 ):
     airspace = yaixm.yaixm.load_airspace(data["airspace"])
     service = yaixm.yaixm.load_service(data["service"])
@@ -298,6 +297,47 @@ def openair(
         yield from openair_boundary(a["boundary"])
 
 
+def openair(
+    data,
+    types,
+    format="openair",
+    home="",
+    max_level=19500,
+    append_freq=False,
+    loa_names=[],
+    wave_names=[],
+    rat_names=[],
+):
+    return "".join(
+        f"{line}\n"
+        for line in openair_generator(
+            data,
+            types,
+            format=format,
+            home=home,
+            max_level=max_level,
+            append_freq=append_freq,
+            loa_names=loa_names,
+            rat_names=rat_names,
+            wave_names=wave_names,
+        )
+    )
+
+    return oa
+
+
+def default_openair(data):
+    types = {
+        "atz": Type.CTR,
+        "ils": Type.G,
+        "noatz": Type.G,
+        "ul": None,
+        "hirta": None,
+        "glider": Type.W,
+    }
+    return openair(data, types, append_freq=True, loa_names=["CAMBRIDGE RAZ"])
+
+
 if __name__ == "__main__":
     import itertools
     import yaml
@@ -320,18 +360,15 @@ if __name__ == "__main__":
 
     rat_names = []
     wave_names = []
-    loa_names = ["BATH GAP"]
+    loa_names = []
 
-    oa = "".join(
-        f"{line}\n"
-        for line in openair(
-            data,
-            types,
-            max_level=66000,
-            home="RIVAR HILL",
-            loa_names=loa_names,
-            rat_names=rat_names,
-            wave_names=wave_names,
-        )
+    oa = openair(
+        data,
+        types,
+        max_level=66000,
+        home="RIVAR HILL",
+        loa_names=loa_names,
+        rat_names=rat_names,
+        wave_names=wave_names,
     )
     print(oa)
