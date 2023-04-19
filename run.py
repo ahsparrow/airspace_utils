@@ -50,7 +50,7 @@ def cli():
         "openair_file",
         nargs="?",
         help="Openair output file, stdout if not specified",
-        type=argparse.FileType("w", encoding="ascii"),
+        type=argparse.FileType("w"),
         default=sys.stdout,
     )
     sub_parser.add_argument("--comp", help="Competition airspace", action="store_true")
@@ -62,9 +62,7 @@ def cli():
     sub_parser.add_argument(
         "yaixm_file", type=argparse.FileType("w"), help="JSON output file"
     )
-    sub_parser.add_argument(
-        "openair_file", type=argparse.FileType("w"), help="OpenAir output file"
-    )
+    sub_parser.add_argument("openair_file", help="OpenAir output file")
     sub_parser.add_argument(
         "--indent",
         "-i",

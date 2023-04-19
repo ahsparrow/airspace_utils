@@ -27,6 +27,7 @@ import yaml
 from yaixm.boundary import boundary_polygon
 from yaixm.convert import Openair, seq_name, make_filter, make_openair_type
 from yaixm.parse_openair import parse as parse_openair
+from yaixm.openair import Type, default_openair, openair
 from yaixm.util import (
     get_airac_date,
     normlevel,
@@ -36,12 +37,17 @@ from yaixm.util import (
 )
 from yaixm.yaixm import load_airspace
 
-HEADER = """UK Airspace
-Alan Sparrow (airspace@asselect.uk)
-
-To the extent possible under law Alan Sparrow has waived all
-copyright and related or neighbouring rights to this file. The data
-is sourced from the UK Aeronautical Information Package (AIP)\n\n"""
+HEADER = """* UK Airspace
+* Alan Sparrow (airspace@asselect.uk)
+*
+* To the extent possible under law Alan Sparrow has waived all
+* copyright and related or neighbouring rights to this file. The data
+* is sourced from the UK Aeronautical Information Package (AIP)
+*
+* AIRAC: {airac_date}
+* asselect.uk: Default airspace file
+* Commit: {commit}
+"""
 
 
 def check(args):
@@ -121,10 +127,10 @@ def navplot(args):
 # obstacles to JSON file with release header and to default Openair file
 def release(args):
     # Aggregate YAIXM files
-    out = {}
+    data = {}
     for f in ["airspace", "loa", "obstacle", "rat", "service"]:
         with open(os.path.join(args.yaixm_dir, f + ".yaml")) as f:
-            out.update(yaml.safe_load(f))
+            data.update(yaml.safe_load(f))
 
     # Append release header
     header = {
@@ -138,7 +144,7 @@ def release(args):
         header["note"] = args.note.read()
     else:
         header["note"] = open(os.path.join(args.yaixm_dir, "release.txt")).read()
-    out.update({"release": header})
+    data.update({"release": header})
 
     # Get Git commit
     try:
@@ -165,49 +171,14 @@ def release(args):
     header["commit"] = commit
 
     # Validate final output
-    error = validate(out)
+    error = validate(data)
     if error:
         print(error)
         sys.exit(-1)
 
-    json.dump(out, args.yaixm_file, sort_keys=True, indent=args.indent)
+    json.dump(data, args.yaixm_file, sort_keys=True, indent=args.indent)
 
     # Default Openair file
-    hdr = HEADER
-    hdr += f"AIRAC: {header['airac_date'][:10]}\n"
-    hdr += "asselect.uk: Default airspace file\n"
-    hdr += f"Commit: {commit}\n"
-    hdr += "\n"
-    if args.note:
-        hdr += header["note"]
-
-    loas = [loa for loa in out["loa"] if loa["name"] == "CAMBRIDGE RAZ"]
-    airspace = merge_loa(out["airspace"], loas)
-
-    services = {}
-    for service in out["service"]:
-        for control in service["controls"]:
-            services[control] = service["frequency"]
-    airspace = merge_service(airspace, services)
-
-    type_func = make_openair_type(
-        atz="CTR", ils="G", glider="W", noatz="G", ul="G", comp=False
-    )
-
-    exclude = [
-        {"name": a["name"], "type": "D_OTHER"}
-        for a in out["airspace"]
-        if "TRA" in a.get("rules", []) or "NOSSR" in a.get("rules", [])
-    ]
-    filter_func = make_filter(microlight=False, hgl=False, exclude=exclude)
-
-    convert = Openair(type_func=type_func, filter_func=filter_func, header=hdr)
-    oa = convert.convert(airspace)
-
-    # Don't accept anything other than ASCII
-    output_oa = oa.encode("ascii").decode("ascii")
-
-    # Convert to DOS format
-    dos_oa = output_oa.replace("\n", "\r\n") + "\r\n"
-
-    args.openair_file.write(dos_oa)
+    with open(args.openair_file, "wt", newline="\r\n") as f:
+        f.write(HEADER.format(airac_date=header["airac_date"][:10], commit=commit))
+        f.write(default_openair(data))
