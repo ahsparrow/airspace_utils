@@ -44,9 +44,7 @@ def cli():
     # release sub-command
     sub_parser = subparsers.add_parser("release", help="make ASSelect airspace")
     sub_parser.add_argument("yaixm_dir", help="YAML input directory")
-    sub_parser.add_argument(
-        "yaixm_file", type=argparse.FileType("w"), help="JSON output file"
-    )
+    sub_parser.add_argument("yaixm_file", help="JSON output file")
     sub_parser.add_argument("openair_file", help="OpenAir output file")
     sub_parser.add_argument(
         "--indent",
@@ -58,7 +56,7 @@ def cli():
     sub_parser.add_argument(
         "--note",
         "-n",
-        help="Release note file",
+        help="release note file",
         type=argparse.FileType("r"),
         default=None,
     )
@@ -70,7 +68,7 @@ def cli():
         default=0,
         dest="offset",
         const=-28,
-        help="Use previous AIRAC date",
+        help="use previous AIRAC date",
     )
     group.add_argument(
         "--next",
@@ -78,7 +76,7 @@ def cli():
         default=0,
         dest="offset",
         const=28,
-        help="Use next AIRAC date",
+        help="use next AIRAC date",
     )
     sub_parser.set_defaults(func=yaixm.cli.release)
 

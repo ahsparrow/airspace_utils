@@ -171,7 +171,8 @@ def release(args):
         print(error)
         sys.exit(-1)
 
-    json.dump(data, args.yaixm_file, sort_keys=True, indent=args.indent)
+    with open(args.yaixm_file, "wt") as f:
+        json.dump(data, f, sort_keys=True, indent=args.indent)
 
     # Default Openair file
     with open(args.openair_file, "wt", newline="\r\n") as f:
