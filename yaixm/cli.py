@@ -25,7 +25,6 @@ from geopandas import GeoDataFrame
 import yaml
 
 from yaixm.boundary import boundary_polygon
-from yaixm.convert import Openair, seq_name, make_filter, make_openair_type
 from yaixm.parse_openair import parse as parse_openair
 from yaixm.openair import Type, default_openair, openair
 from yaixm.util import (
@@ -62,20 +61,16 @@ def check(args):
 
 
 def openair(args):
-    # Load airspace
-    airspace = load(args.airspace_file)
+    # Aggregate YAIXM files
+    data = {}
+    for f in ["airspace", "loa", "obstacle", "rat", "service"]:
+        with open(os.path.join(args.yaixm_dir, f + ".yaml")) as f:
+            data.update(yaml.safe_load(f))
 
-    # Convert to openair
-    if args.comp:
-        convert = Openair(name_func=seq_name, type_func=make_openair_type(comp=True))
-    else:
-        convert = Openair()
-    oa = convert.convert(airspace["airspace"])
-
-    # Don't accept anything other than ASCII
-    output_oa = oa.encode("ascii").decode("ascii")
-
-    args.openair_file.write(output_oa)
+    # Write default openair data
+    filename = args.openair_file or "-"
+    f = sys.stdout if filename == "-" else open(filename, "wt", newline="\r\n")
+    f.write(default_openair(data))
 
 
 # Convert either yaxim or openair file to GIS format

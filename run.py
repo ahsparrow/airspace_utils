@@ -39,21 +39,8 @@ def cli():
 
     # openair sub-command
     sub_parser = subparsers.add_parser("openair", help="convert to OpenAir")
-    sub_parser.add_argument(
-        "airspace_file",
-        nargs="?",
-        help="YAML airspace file",
-        type=argparse.FileType("r"),
-        default=sys.stdin,
-    )
-    sub_parser.add_argument(
-        "openair_file",
-        nargs="?",
-        help="Openair output file, stdout if not specified",
-        type=argparse.FileType("w"),
-        default=sys.stdout,
-    )
-    sub_parser.add_argument("--comp", help="Competition airspace", action="store_true")
+    sub_parser.add_argument("yaixm_dir", help="YAML input directory")
+    sub_parser.add_argument("openair_file", help="Openair output file (default stdout)", nargs="?")
     sub_parser.set_defaults(func=yaixm.cli.openair)
 
     # release sub-command

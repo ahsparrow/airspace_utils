@@ -161,7 +161,7 @@ def make_filter(types, max_level, home, wave):
 
 def level(level_str):
     if level_str.endswith("ft"):
-        # Altitud
+        # Altitude
         return level_str[:-3] + "ALT"
     else:
         # SFC or FL
