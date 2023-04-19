@@ -97,7 +97,7 @@ def gis(args):
 
 def navplot(args):
     # Load airspace
-    with open(args.airspace_filepath) as f:
+    with open(args.airspace_file) as f:
         data = yaml.safe_load(f)
         airspace = load_airspace(data["airspace"])
 
@@ -115,7 +115,7 @@ def navplot(args):
 
     # Convert to GeoDataFrame and write to file
     df = GeoDataFrame({"geometry": geometry}, crs="EPSG:4326")
-    df.to_file(args.navplot_filepath)
+    df.to_file(args.navplot_file)
 
 
 # Convert collection of YAIXM files containing airspace, LOAs and

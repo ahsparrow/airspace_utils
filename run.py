@@ -31,8 +31,8 @@ def cli():
 
     # navplot sub-command
     sub_parser = subparsers.add_parser("navplot", help="make NavPlot airspace")
-    sub_parser.add_argument("airspace_filepath", help="Airspace input file")
-    sub_parser.add_argument("navplot_filepath", help="NavPlot output file")
+    sub_parser.add_argument("airspace_file", help="Airspace input file")
+    sub_parser.add_argument("navplot_file", help="NavPlot output file")
     sub_parser.set_defaults(func=yaixm.cli.navplot)
 
     # openair sub-command
