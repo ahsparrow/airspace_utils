@@ -11,9 +11,10 @@ from shapely import MultiPoint, MultiPolygon, Point, Polygon, minimum_bounding_r
 from shapely.affinity import scale, skew, translate
 from shapely.ops import polylabel
 from sklearn.cluster import KMeans
+import yaml
 
 from yaixm.boundary import boundary_polygon
-from yaixm.convert import OPENAIR_LATLON_FMT, openair_level_str
+from yaixm.openair import LATLON_FMT, level
 from yaixm.util import dms
 from yaixm.yaixm import load_airspace
 
@@ -68,10 +69,10 @@ def make_openair(annotation):
         for poly in row["geometry"].geoms:
             openair.append("AC B")
             openair.append(f"AN {row['name']}")
-            openair.append(f"AL {openair_level_str(row['lower'])}")
-            openair.append(f"AH {openair_level_str(row['upper'])}")
+            openair.append(f"AL {level(row['lower'])}")
+            openair.append(f"AH {level(row['upper'])}")
             for vertex in poly.exterior.coords:
-                latlon = OPENAIR_LATLON_FMT.format(dms(vertex[1]), dms(vertex[0]))
+                latlon = LATLON_FMT.format(dms(vertex[1]), dms(vertex[0]))
                 openair.append(f"DP {latlon}")
 
     openair.append("")
@@ -137,7 +138,9 @@ def poly_splitter(poly, max_size):
 
 def overlay(args):
     # Create geopandas GeoDataFrame
-    df = load_airspace(args.airspace_filepath)
+    with open(args.airspace_filepath) as f:
+        data = yaml.safe_load(f.read())
+        df = load_airspace(data["airspace"])
     df["geometry"] = df["boundary"].apply(lambda x: boundary_polygon(x, resolution=9))
     gdf = GeoDataFrame(df, crs="EPSG:4326")
 
