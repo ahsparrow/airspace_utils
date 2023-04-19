@@ -51,7 +51,7 @@ HEADER = """* UK Airspace
 
 def check(args):
     # Load airspace
-    airspace = yaml.safe_load(open(args.airspace_filepath))
+    airspace = yaml.safe_load(open(args.airspace_file))
 
     # Validate and write any errors to stderr
     e = validate(airspace)
