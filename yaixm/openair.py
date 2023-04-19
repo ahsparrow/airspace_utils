@@ -44,6 +44,7 @@ class Type(StrEnum):
     RESTRICTED = "R"
     W = "W"
 
+
 Grammer = """
     ?start: feature_list
     feature_list: feature+
@@ -404,7 +405,7 @@ def default_openair(data):
         "noatz": Type.G,
         "ul": None,
         "hirta": None,
-        "glider": Type.W
+        "glider": Type.W,
     }
     loa_names = [loa["name"] for loa in data["loa"] if loa.get("default")]
     return openair(data, types, append_freq=True, loa_names=loa_names)
@@ -509,7 +510,7 @@ if __name__ == "__main__":
         "ul": None,
         "hirta": None,
         "glider": Type.W,
-        "obstacle": None
+        "obstacle": None,
     }
 
     rat_names = []
