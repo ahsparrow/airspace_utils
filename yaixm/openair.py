@@ -19,7 +19,6 @@ from enum import StrEnum
 import math
 
 from lark import Lark, Transformer
-import numpy as np
 import pandas
 
 from yaixm.util import dms, parse_latlon

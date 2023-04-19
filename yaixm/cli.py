@@ -29,9 +29,6 @@ from yaixm.boundary import boundary_polygon
 from yaixm.openair import Type, default_openair, openair, parse as parse_openair
 from yaixm.util import (
     get_airac_date,
-    normlevel,
-    merge_loa,
-    merge_service,
     validate,
 )
 from yaixm.yaixm import load_airspace

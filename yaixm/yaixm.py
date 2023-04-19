@@ -16,7 +16,6 @@
 # along with YAIXM.  If not, see <http://www.gnu.org/licenses/>.
 
 import pandas
-import yaml
 
 from yaixm.util import normlevel
 

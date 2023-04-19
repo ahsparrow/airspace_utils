@@ -15,19 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with YAIXM utils.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
-import json
 import math
-import os.path
-import re
-import subprocess
-import sys
-import tempfile
 
-from pygeodesy.ellipsoidalVincenty import LatLon
-import yaml
-
-from yaixm.util import ordered_map_representer, parse_deg
+from yaixm.util import parse_deg
 
 
 def calc_ils(args):
