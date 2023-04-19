@@ -38,7 +38,9 @@ def cli():
     # openair sub-command
     sub_parser = subparsers.add_parser("openair", help="convert to OpenAir")
     sub_parser.add_argument("yaixm_dir", help="YAML input directory")
-    sub_parser.add_argument("openair_file", help="Openair output file (default stdout)", nargs="?")
+    sub_parser.add_argument(
+        "openair_file", help="Openair output file (default stdout)", nargs="?"
+    )
     sub_parser.set_defaults(func=yaixm.cli.openair)
 
     # release sub-command
@@ -82,22 +84,12 @@ def cli():
 
     # overlay sub-command
     sub_parser = subparsers.add_parser("overlay", help="make height overlay")
-    sub_parser.add_argument("airspace_filepath", help="YAML airspace file")
+    sub_parser.add_argument("airspace_file", help="YAML airspace file")
+    sub_parser.add_argument("output_file", help="Openair output file")
     sub_parser.add_argument(
-        "output_file",
-        nargs="?",
-        help="Openair output file, stdout if not specified",
-        type=argparse.FileType("wt"),
-        default=sys.stdout,
+        "--max_alt", type=int, default=10400, help="maximum base altitude"
     )
-    sub_parser.add_argument(
-        "--max_alt", type=int, default=10400, help="Maximum base altitude"
-    )
-    sub_parser.add_argument(
-        "--debug_file",
-        help="GeoJSON output file for debug",
-        type=argparse.FileType("wb"),
-    )
+    sub_parser.add_argument("--debug_file", help="GeoJSON output file for debug")
     sub_parser.set_defaults(func=yaixm.overlay.overlay)
 
     # ils sub-command

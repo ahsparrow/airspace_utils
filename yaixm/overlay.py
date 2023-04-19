@@ -138,9 +138,10 @@ def poly_splitter(poly, max_size):
 
 def overlay(args):
     # Create geopandas GeoDataFrame
-    with open(args.airspace_filepath) as f:
+    with open(args.airspace_file) as f:
         data = yaml.safe_load(f.read())
         df = load_airspace(data["airspace"])
+
     df["geometry"] = df["boundary"].apply(lambda x: boundary_polygon(x, resolution=9))
     gdf = GeoDataFrame(df, crs="EPSG:4326")
 
@@ -214,7 +215,7 @@ def overlay(args):
         # Store annotation in GeoDataFrame
         data = {
             "geometry": [txt],
-            "name": [lowest_cta["name"]],
+            "name": [lowest_cta["name"] or lowest_cta["feature_name"]],
             "lower": [lowest_cta["lower"]],
             "upper": [lowest_cta["upper"]],
         }
@@ -229,4 +230,5 @@ def overlay(args):
 
     # Convert to OpenAir and write to file
     openair = make_openair(annotation)
-    args.output_file.write(openair)
+    with open(args.output_file, "wt") as f:
+        f.write(openair)
