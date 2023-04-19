@@ -16,12 +16,10 @@ def cli():
     sub_parser.add_argument("airspace_file", help="YAML airspace file")
     sub_parser.set_defaults(func=yaixm.cli.check)
 
-    # convert sub-command
+    # gis convert sub-command
     sub_parser = subparsers.add_parser("gis", help="convert to GIS format")
-    sub_parser.add_argument(
-        "airspace_filepath", help="airspace file (YAIXM or Openair)"
-    )
-    sub_parser.add_argument("gis_filepath", help="GIS output file")
+    sub_parser.add_argument("airspace_file", help="airspace file (YAIXM or Openair)")
+    sub_parser.add_argument("gis_file", help="GIS output file")
     sub_parser.add_argument(
         "-r",
         "--resolution",

@@ -76,8 +76,8 @@ def openair(args):
 # Convert either yaxim or openair file to GIS format
 def gis(args):
     # Load airspace
-    with open(args.airspace_filepath) as f:
-        if args.airspace_filepath.endswith("yaml"):
+    with open(args.airspace_file) as f:
+        if args.airspace_file.endswith("yaml"):
             # YAML input
             data = yaml.safe_load(f)
             airspace = load_airspace(data["airspace"])
@@ -92,7 +92,7 @@ def gis(args):
 
     # Convert to GeoDataFrame and write to file
     df = GeoDataFrame(airspace, crs="EPSG:4326")
-    df.to_file(args.gis_filepath)
+    df.to_file(args.gis_file)
 
 
 def navplot(args):
