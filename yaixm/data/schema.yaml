@@ -59,6 +59,7 @@ definitions:
       - LASER       # Laser site
       - MATZ        # Military ATZ
       - NOATZ       # Non-ATZ airfield
+      - OBSTACLE    # Obstacle
       - RAT         # Temporary restricted area
       - RMZ         # Radio mandatory zone
       - UL          # Ultra-light strip

@@ -31,6 +31,8 @@ LATLON_FMT = (
 
 class Type(StrEnum):
     A = "A"
+    B = "B"
+    C = "C"
     D = "D"
     E = "E"
     F = "F"
@@ -98,6 +100,8 @@ def typer(volume, types, format):
                     out = "P"
                 elif volume["localtype"] in ["HIRTA", "GVS", "LASER"]:
                     out = types["hirta"].value
+                elif volume["localtype"] == "OBSTACLE":
+                    out = types["obstacle"].value
                 else:
                     out = "Q"
             case "OTHER":
@@ -278,6 +282,11 @@ def openair_generator(
         [airspace, rats[rats["feature_name"].map(lambda x: x in rat_names)]]
     )
 
+    # Add obstacles
+    if types.get("obstacle"):
+        obstacles = yaixm.yaixm.load_obstacle(data["obstacle"])
+        airspace = pandas.concat([airspace, obstacles])
+
     # Filter airspace
     airspace = airspace[
         airspace.apply(make_filter(types, max_level, home, wave=wave_names), axis=1)
@@ -333,7 +342,7 @@ def default_openair(data):
         "noatz": Type.G,
         "ul": None,
         "hirta": None,
-        "glider": Type.W,
+        "glider": Type.W
     }
     loa_names = [loa["name"] for loa in data["loa"] if loa.get("default")]
     return openair(data, types, append_freq=True, loa_names=loa_names)
@@ -347,8 +356,9 @@ if __name__ == "__main__":
     service = yaml.safe_load(open("/home/ahs/src/airspace/service.yaml"))
     rat = yaml.safe_load(open("/home/ahs/src/airspace/rat.yaml"))
     loa = yaml.safe_load(open("/home/ahs/src/airspace/loa.yaml"))
+    obstacle = yaml.safe_load(open("/home/ahs/src/airspace/obstacle.yaml"))
 
-    data = airspace | service | rat | loa
+    data = airspace | service | rat | loa | obstacle
 
     types = {
         "atz": Type.CTR,
@@ -357,6 +367,7 @@ if __name__ == "__main__":
         "ul": None,
         "hirta": None,
         "glider": Type.W,
+        "obstacle": None
     }
 
     rat_names = []

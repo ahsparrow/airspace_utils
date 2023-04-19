@@ -53,3 +53,19 @@ def load_service(data):
     ]
 
     return pandas.DataFrame(service_dict)
+
+def load_obstacle(data):
+    obstacle_dict = [
+        {
+            "boundary": [{"circle": {"centre": obstacle["position"], "radius": "0.5 nm"}}],
+            "name": obstacle["name"],
+            "lower": "SFC",
+            "upper": obstacle["elevation"],
+            "type": "D_OTHER",
+            "localtype": "OBSTACLE",
+            "rules": []
+        }
+        for obstacle in data
+    ]
+
+    return pandas.DataFrame(obstacle_dict)
