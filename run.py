@@ -62,8 +62,8 @@ def cli():
     # release sub-command
     sub_parser = subparsers.add_parser("release", help="make ASSelect airspace")
     sub_parser.add_argument("yaixm_dir", help="YAML input directory")
-    sub_parser.add_argument("yaixm_file", help="JSON output file")
-    sub_parser.add_argument("openair_file", help="OpenAir output file")
+    sub_parser.add_argument("json_file", help="JSON output file")
+    sub_parser.add_argument("openair_file", help="OpenAir output file", nargs="?")
     sub_parser.add_argument(
         "--indent",
         "-i",

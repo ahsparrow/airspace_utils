@@ -173,10 +173,12 @@ def release(args):
         print(error)
         sys.exit(-1)
 
-    with open(args.yaixm_file, "wt") as f:
+    # Write JSON data
+    with open(args.json_file, "wt") as f:
         json.dump(data, f, sort_keys=True, indent=args.indent)
 
-    # Default Openair file
-    with open(args.openair_file, "wt", newline="\r\n") as f:
-        f.write(HEADER.format(airac_date=header["airac_date"][:10], commit=commit))
-        f.write(default_openair(data))
+    # Write default airspace Openair file
+    if args.openair_file:
+        with open(args.openair_file, "wt", newline="\r\n") as f:
+            f.write(HEADER.format(airac_date=header["airac_date"][:10], commit=commit))
+            f.write(default_openair(data))
