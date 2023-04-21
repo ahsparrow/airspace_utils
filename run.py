@@ -43,6 +43,22 @@ def cli():
     )
     sub_parser.set_defaults(func=yaixm.cli.openair)
 
+    # json sub-command
+    sub_parser = subparsers.add_parser("json", help="convert YAML to JSON")
+    sub_parser.add_argument(
+        "yaixm_file",
+        help="JSON input file",
+        type=argparse.FileType("r"),
+        default=sys.stdin,
+    )
+    sub_parser.add_argument(
+        "json_file",
+        help="JSON output file",
+        type=argparse.FileType("wt"),
+        default=sys.stdout,
+    )
+    sub_parser.set_defaults(func=yaixm.cli.tojson)
+
     # release sub-command
     sub_parser = subparsers.add_parser("release", help="make ASSelect airspace")
     sub_parser.add_argument("yaixm_dir", help="YAML input directory")

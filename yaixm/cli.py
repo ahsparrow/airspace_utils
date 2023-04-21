@@ -115,6 +115,11 @@ def navplot(args):
     df.to_file(args.navplot_file)
 
 
+# Convert YAML to JSON
+def tojson(args):
+    json.dump(yaml.safe_load(args.yaixm_file), args.json_file)
+
+
 # Convert collection of YAIXM files containing airspace, LOAs and
 # obstacles to JSON file with release header and to default Openair file
 def release(args):
