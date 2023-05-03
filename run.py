@@ -16,6 +16,11 @@ def cli():
     sub_parser.add_argument("airspace_file", help="YAML airspace file")
     sub_parser.set_defaults(func=yaixm.cli.check)
 
+    # deploy sub-command
+    sub_parser = subparsers.add_parser("deploy", help="deploy data files to web server")
+    sub_parser.add_argument("directory", help="Data directory")
+    sub_parser.set_defaults(func=yaixm.cli.deploy)
+
     # gis convert sub-command
     sub_parser = subparsers.add_parser("gis", help="convert to GIS format")
     sub_parser.add_argument("airspace_file", help="airspace file (YAIXM or Openair)")
