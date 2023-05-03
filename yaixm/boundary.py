@@ -16,7 +16,6 @@
 # along with YAIXM.  If not, see <http://www.gnu.org/licenses/>.
 
 from functools import lru_cache
-from geopandas import GeoDataFrame
 import numpy as np
 from pyproj import Transformer
 from pyproj.enums import TransformDirection
