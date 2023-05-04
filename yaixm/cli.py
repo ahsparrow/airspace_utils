@@ -30,6 +30,7 @@ from yaixm.boundary import boundary_polygon
 from yaixm.openair import Type, default_openair, openair, parse as parse_openair
 from yaixm.util import (
     get_airac_date,
+    normlevel,
     validate,
 )
 from yaixm.yaixm import load_airspace
@@ -82,6 +83,7 @@ def gis(args):
         else:
             # Openair input
             airspace = pandas.DataFrame(parse_openair(f.read()))
+            airspace["normlower"] = airspace["lower"].map(normlevel)
 
     airspace["geometry"] = airspace["boundary"].apply(
         lambda x: boundary_polygon(x, resolution=args.resolution)
