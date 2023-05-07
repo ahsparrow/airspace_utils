@@ -111,6 +111,9 @@ def cli():
         "--max_alt", type=int, default=10400, help="maximum base altitude"
     )
     sub_parser.add_argument("--debug_file", help="GeoJSON output file for debug")
+    sub_parser.add_argument(
+        "--hgpg", action="store_true", help="Generate overlay for HG/PG use"
+    )
     sub_parser.set_defaults(func=yaixm.overlay.overlay)
 
     # ils sub-command

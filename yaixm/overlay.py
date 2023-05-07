@@ -85,10 +85,10 @@ def get_position(polys):
     dist = []
     for p in polys:
         poi = polylabel(p, tolerance=10)
-        poi_dist = poi.distance(p.exterior)
+        poi_dist = poi.distance(p.boundary)
 
         centroid = p.centroid
-        centroid_dist = centroid.distance(p.exterior)
+        centroid_dist = centroid.distance(p.boundary)
 
         if p.contains(centroid) and centroid_dist > min(TEXT_SIZE, (poi_dist * 0.90)):
             pos.append(centroid)
@@ -100,8 +100,23 @@ def get_position(polys):
     return pos, dist
 
 
-# Split a polygon into two
-def split_poly(poly, grid=500):
+def cluster_points(out, points, max_size):
+    if minimum_bounding_radius(points) < max_size:
+        out.append(points)
+    else:
+        # Split points into two clusters using k-means clustering
+        kmeans = KMeans(n_clusters=2, random_state=0, n_init="auto")
+        cluster = kmeans.fit_predict([(p.x, p.y) for p in points.geoms])
+
+        c1 = MultiPoint(numpy.array(points.geoms)[cluster == 0])
+        cluster_points(out, c1, max_size)
+
+        c2 = MultiPoint(numpy.array(points.geoms)[cluster == 1])
+        cluster_points(out, c2, max_size)
+
+
+# Split polygons into smaller parts
+def poly_splitter(poly, max_size, grid=500):
     # Create array of points inside polygon
     minx, miny, maxx, maxy = poly.bounds
     nx = int((maxx - minx) // grid + 1)
@@ -112,28 +127,12 @@ def split_poly(poly, grid=500):
     pts = translate(pts, minx, miny)
     pts = poly.intersection(pts)
 
-    # Split points into two clusters using k-means clustering
-    kmeans = KMeans(n_clusters=2, random_state=0, n_init="auto")
-    cluster = kmeans.fit_predict([(p.x, p.y) for p in pts.geoms])
+    # Split points into clusters
+    out = []
+    cluster_points(out, pts, max_size)
 
-    # Create new polgons from clusted points
-    c1 = MultiPoint(numpy.array(pts.geoms)[cluster == 0])
-    p1 = c1.buffer(grid * 1.6).intersection(poly)
-
-    c2 = MultiPoint(numpy.array(pts.geoms)[cluster == 1])
-    p2 = c2.buffer(grid * 1.6).intersection(poly)
-
-    # Return polygon array
-    return [p1, p2]
-
-
-# Iteratively split polygons into smaller parts
-def poly_splitter(poly, max_size):
-    if minimum_bounding_radius(poly) > max_size:
-        p1, p2 = split_poly(poly)
-        return poly_splitter(p1, max_size) + poly_splitter(p2, max_size)
-    else:
-        return [poly]
+    # Convert point arrays back to polygons
+    return [p.buffer(grid * 0.501, cap_style="square").intersection(poly) for p in out]
 
 
 def overlay(args):
@@ -142,6 +141,7 @@ def overlay(args):
         data = yaml.safe_load(f.read())
         df = load_airspace(data["airspace"])
 
+    # Calculate X/Y geometry
     df["geometry"] = df["boundary"].apply(lambda x: boundary_polygon(x, resolution=9))
     gdf = GeoDataFrame(df, crs="EPSG:4326")
 
@@ -149,33 +149,51 @@ def overlay(args):
     cta = gdf[
         gdf["type"].isin(["CTA", "CTR", "TMA"])
         & (gdf["normlower"] <= args.max_alt)
-        & (gdf["name"] != "BRIZE NORTON CTR")
+        & (gdf["feature_name"] != "BRIZE NORTON CTR")
         & (gdf["rules"].isna() | gdf["rules"].apply(lambda x: x.count("NOTAM") == 0))
     ]
-
-    # Change to X/Y projection
-    cta = cta.to_crs("EPSG:27700")
-
-    # Discard all but geometry
     cta_geom = GeoDataFrame({"geometry": cta.geometry})
 
-    # Make airspace union
+    # Make union of CTA geometries
     geom = cta_geom[0:1]
     for i in range(1, len(cta_geom)):
         geom = geom.overlay(cta_geom[i : i + 1], how="union", keep_geom_type=True)
 
-    # Remove airspace 'slivers' and convert MultiPolygons to Polygons
-    polys = geom.geometry.buffer(100).buffer(-600).explode(index_parts=False)
+    if args.hgpg:
+        # ATZs, DZs and Brize
+        atzdz = gdf[
+            (gdf["type"] == "ATZ")
+            | (gdf["localtype"] == "DZ")
+            | (gdf["feature_name"] == "BRIZE NORTON CTR")
+        ]
+        atzdz_geom = GeoDataFrame({"geometry": atzdz.geometry})
 
-    # Remove empty polygons
-    polys = polys[~polys.is_empty]
+        # Remove ATZ geometries
+        for i in range(0, len(atzdz)):
+            geom = geom.overlay(
+                atzdz_geom[i : i + 1], how="difference", keep_geom_type=True
+            )
+
+    # Convert to X/Y coordinates
+    cta = cta.to_crs("EPSG:27700")
+    geom = geom.to_crs("EPSG:27700")
+
+    # Remove slivers between not-quite-adjacent bits of airspace
+    geom = geom.geometry.buffer(-300).buffer(300)
+    geom = geom.explode(ignore_index=True)
+    geom = geom[~geom.geometry.is_empty]
 
     # Split bigger polygons
-    polys = [poly_splitter(p, SPLIT_RADIUS) for p in polys]
+    polys = [poly_splitter(p, SPLIT_RADIUS) for p in geom.geometry]
     polys = [poly for sublist in polys for poly in sublist]
 
-    # Get label positions nd distance to edge
-    poi, dist = get_position(polys)
+    # Convert multipolygons to polygons and discard anything else
+    geom = GeoDataFrame({"geometry": polys}, crs="EPSG:27700")
+    geom = geom.explode(ignore_index=True)
+    geom = geom[geom.geometry.type == "Polygon"]
+
+    # Get label positions and distance to edge
+    poi, dist = get_position(geom.geometry)
 
     # Character glyphs
     glyphs = get_glyphs(
