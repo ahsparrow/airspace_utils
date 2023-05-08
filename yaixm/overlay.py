@@ -4,7 +4,7 @@ import json
 from math import sqrt
 
 from freetype import Face, FT_LOAD_DEFAULT, FT_LOAD_NO_BITMAP
-from geopandas import read_file, GeoDataFrame
+from geopandas import GeoDataFrame
 import numpy
 import pandas
 from shapely import MultiPoint, MultiPolygon, Point, Polygon, minimum_bounding_radius
@@ -97,7 +97,7 @@ def make_openair(annotation):
     return "\n".join(openair)
 
 
-# Calculate best position for annotation
+# Guess best position for annotation
 def get_position(polys):
     pos = []
     dist = []
@@ -118,6 +118,7 @@ def get_position(polys):
     return pos, dist
 
 
+# Recursively cluster points
 def cluster_points(out, points, max_size):
     if minimum_bounding_radius(points) < max_size:
         out.append(points)
@@ -184,7 +185,7 @@ def overlay(args):
         geom = geom.overlay(cta_geom[i : i + 1], how="union", keep_geom_type=True)
 
     # Remove ATZ and DZ geometrys for HG/PG overlay
-    if args.hgpg:
+    if args.atzdz:
         # ATZs (not Odiham) and Brize
         atz = gdf[
             (
@@ -263,7 +264,7 @@ def overlay(args):
         )
 
     # Annotate ATZ and DZ for HG/PG overlay
-    if args.hgpg:
+    if args.atzdz:
         # DZ annotation
         dropzone = dropzone.to_crs("EPSG:27700")
         for i, dz in dropzone.iterrows():

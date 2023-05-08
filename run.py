@@ -112,7 +112,7 @@ def cli():
     )
     sub_parser.add_argument("--debug_file", help="GeoJSON output file for debug")
     sub_parser.add_argument(
-        "--hgpg", action="store_true", help="Generate overlay for HG/PG use"
+        "--atzdz", action="store_true", help="add ATZ upper limits and DZ"
     )
     sub_parser.set_defaults(func=yaixm.overlay.overlay)
 
