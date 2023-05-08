@@ -62,6 +62,24 @@ def make_string(glyphs, text, style="normal"):
     return result
 
 
+def annotation_polys(glyphs, point, clearance, annotation, style="normal"):
+    # Create annotation polgons
+    txt = make_string(glyphs, annotation, style)
+    minx, miny, maxx, maxy = txt.bounds
+
+    # Scale to fit space available
+    scl = 2 * min(clearance, TEXT_SIZE) / sqrt((maxx - minx) ** 2 + (maxy - miny) ** 2)
+    txt = scale(txt, scl, scl)
+    minx, miny, maxx, maxy = txt.bounds
+
+    # Translate to correct postion
+    xoff = point.x - (minx + maxx) / 2
+    yoff = point.y - (miny + maxy) / 2
+    txt = translate(txt, xoff, yoff)
+
+    return txt
+
+
 # Create OpenAir data
 def make_openair(annotation):
     openair = []
@@ -136,12 +154,18 @@ def poly_splitter(poly, max_size, grid=500):
 
 
 def overlay(args):
-    # Create geopandas GeoDataFrame
+    # Character glyphs for annotation
+    glyphs = get_glyphs(
+        files("yaixm").joinpath("data").joinpath("asselect.ttf").open("rb"),
+        "0123456789DZ",
+    )
+
+    # Create pandas dataframe
     with open(args.airspace_file) as f:
         data = yaml.safe_load(f.read())
         df = load_airspace(data["airspace"])
 
-    # Calculate X/Y geometry
+    # Create boundary geometry and convert to GeoDataFrame
     df["geometry"] = df["boundary"].apply(lambda x: boundary_polygon(x, resolution=9))
     gdf = GeoDataFrame(df, crs="EPSG:4326")
 
@@ -154,24 +178,31 @@ def overlay(args):
     ]
     cta_geom = GeoDataFrame({"geometry": cta.geometry})
 
-    # Make union of CTA geometries
+    # Overlay CTA geometries
     geom = cta_geom[0:1]
     for i in range(1, len(cta_geom)):
         geom = geom.overlay(cta_geom[i : i + 1], how="union", keep_geom_type=True)
 
+    # Remove ATZ and DZ geometrys for HG/PG overlay
     if args.hgpg:
-        # ATZs, DZs and Brize
-        atzdz = gdf[
-            (gdf["type"] == "ATZ")
-            | (gdf["localtype"] == "DZ")
-            | (gdf["feature_name"] == "BRIZE NORTON CTR")
-        ]
-        atzdz_geom = GeoDataFrame({"geometry": atzdz.geometry})
+        # ATZs and Brize
+        atz = gdf[(gdf["type"] == "ATZ") | (gdf["feature_name"] == "BRIZE NORTON CTR")]
+        atz_geom = GeoDataFrame({"geometry": atz.geometry})
 
         # Remove ATZ geometries
-        for i in range(0, len(atzdz)):
+        for i in range(0, len(atz_geom)):
             geom = geom.overlay(
-                atzdz_geom[i : i + 1], how="difference", keep_geom_type=True
+                atz_geom[i : i + 1], how="difference", keep_geom_type=True
+            )
+
+        # Dropzones
+        dropzone = gdf[(gdf["localtype"] == "DZ")]
+        dropzone_geom = GeoDataFrame({"geometry": dropzone.geometry})
+
+        # Remove DZ geometries
+        for i in range(0, len(dropzone_geom)):
+            geom = geom.overlay(
+                dropzone_geom[i : i + 1], how="difference", keep_geom_type=True
             )
 
     # Convert to X/Y coordinates
@@ -191,48 +222,33 @@ def overlay(args):
     geom = GeoDataFrame({"geometry": polys}, crs="EPSG:27700")
     geom = geom.explode(ignore_index=True)
     geom = geom[geom.geometry.type == "Polygon"]
+    geom.to_file("poly.geojson")
 
     # Get label positions and distance to edge
     poi, dist = get_position(geom.geometry)
 
-    # Character glyphs
-    glyphs = get_glyphs(
-        files("yaixm").joinpath("data").joinpath("asselect.ttf").open("rb"),
-        "0123456789",
-    )
-
     # Create annotation
     annotation = GeoDataFrame({"geometry": []}, crs="EPSG:27700")
-    for p, d in zip(poi, dist):
+    for pos, clearance in zip(poi, dist):
         # Find lowest airspace at point p
-        ctas = cta.cx[p.x : p.x + 1, p.y : p.y + 1]
+        ctas = cta.cx[pos.x : pos.x + 1, pos.y : pos.y + 1]
         min_ind = ctas["normlower"].argmin()
         lowest_cta = ctas.iloc[min_ind]
 
-        # Skip if base at surface
-        if lowest_cta["normlower"] == 0:
+        # Skip if base at surface or clearance is too small
+        if lowest_cta["normlower"] == 0 or clearance < 500:
             continue
 
         # Use slanted glyphs for flight levels, upright for altitude
         style = "slanted" if lowest_cta["lower"].startswith("FL") else "normal"
 
-        # Create annotation polgons
-        txt = make_string(glyphs, str(lowest_cta["normlower"] // 100), style)
-        minx, miny, maxx, maxy = txt.bounds
+        # Convert height text to polygons
+        txt = annotation_polys(
+            glyphs, pos, clearance, str(lowest_cta["normlower"] // 100), style
+        )
 
-        # Scale to fit space available
-        scl = 2 * min(d, TEXT_SIZE) / sqrt((maxx - minx) ** 2 + (maxy - miny) ** 2)
-        txt = scale(txt, scl, scl)
-        minx, miny, maxx, maxy = txt.bounds
-
-        # Translate to correct postion
-        xoff = p.x - (minx + maxx) / 2
-        yoff = p.y - (miny + maxy) / 2
-        txt = translate(txt, xoff, yoff)
-
-        # Store annotation in GeoDataFrame
         data = {
-            "geometry": [txt],
+            "geometry": txt,
             "name": [lowest_cta["name"] or lowest_cta["feature_name"]],
             "lower": [lowest_cta["lower"]],
             "upper": [lowest_cta["upper"]],
@@ -240,6 +256,46 @@ def overlay(args):
         annotation = pandas.concat(
             [annotation, GeoDataFrame(data, crs="EPSG:27700")], ignore_index=False
         )
+
+    # Annotate ATZ and DZ for HG/PG overlay
+    if args.hgpg:
+        # DZ annotation
+        dropzone = dropzone.to_crs("EPSG:27700")
+        for i, dz in dropzone.iterrows():
+            pos = dz.geometry.centroid
+            clearance = minimum_bounding_radius(dz.geometry)
+            txt = annotation_polys(glyphs, pos, clearance, "DZ")
+
+            data = {
+                "geometry": txt,
+                "name": [dz["feature_name"]],
+                "lower": [dz["lower"]],
+                "upper": [dz["upper"]],
+            }
+            annotation = pandas.concat(
+                [annotation, GeoDataFrame(data, crs="EPSG:27700")], ignore_index=False
+            )
+
+        # ATZ annotation
+        atz = atz.to_crs("EPSG:27700")
+        for i, a in atz.iterrows():
+            pos = a.geometry.centroid
+            if not dropzone.geometry.contains(pos).any():
+                clearance = minimum_bounding_radius(a.geometry)
+                txt = annotation_polys(
+                    glyphs, pos, clearance, str(a["upper"].split()[0])
+                )
+
+                data = {
+                    "geometry": txt,
+                    "name": [a["feature_name"]],
+                    "lower": [a["lower"]],
+                    "upper": [a["upper"]],
+                }
+                annotation = pandas.concat(
+                    [annotation, GeoDataFrame(data, crs="EPSG:27700")],
+                    ignore_index=False,
+                )
 
     # Convert to WGS84
     annotation = annotation.to_crs("EPSG:4326")
