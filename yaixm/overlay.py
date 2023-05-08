@@ -187,7 +187,10 @@ def overlay(args):
     if args.hgpg:
         # ATZs (not Odiham) and Brize
         atz = gdf[
-            ((gdf["type"] == "ATZ") & (gdf["feature_name"] != "ODIHAM"))
+            (
+                (gdf["type"] == "ATZ")
+                & ~gdf["feature_name"].isin(["DENHAM", "DERBY", "FAIROAKS", "ODIHAM"])
+            )
             | (gdf["feature_name"] == "BRIZE NORTON CTR")
         ]
         atz_geom = GeoDataFrame({"geometry": atz.geometry})
@@ -225,7 +228,6 @@ def overlay(args):
     geom = GeoDataFrame({"geometry": polys}, crs="EPSG:27700")
     geom = geom.explode(ignore_index=True)
     geom = geom[geom.geometry.type == "Polygon"]
-    geom.to_file("poly.geojson")
 
     # Get label positions and distance to edge
     poi, dist = get_position(geom.geometry)
@@ -283,7 +285,10 @@ def overlay(args):
         atz = atz.to_crs("EPSG:27700")
         for i, a in atz.iterrows():
             pos = a.geometry.centroid
-            if not dropzone.geometry.contains(pos).any():
+            if not (
+                dropzone.geometry.contains(pos).any()
+                or a["feature_name"] == "BRIZE NORTON CTR"
+            ):
                 clearance = minimum_bounding_radius(a.geometry)
                 txt = annotation_polys(
                     glyphs, pos, clearance, str(a["upper"].split()[0])
