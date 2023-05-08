@@ -185,8 +185,11 @@ def overlay(args):
 
     # Remove ATZ and DZ geometrys for HG/PG overlay
     if args.hgpg:
-        # ATZs and Brize
-        atz = gdf[(gdf["type"] == "ATZ") | (gdf["feature_name"] == "BRIZE NORTON CTR")]
+        # ATZs (not Odiham) and Brize
+        atz = gdf[
+            ((gdf["type"] == "ATZ") & (gdf["feature_name"] != "ODIHAM"))
+            | (gdf["feature_name"] == "BRIZE NORTON CTR")
+        ]
         atz_geom = GeoDataFrame({"geometry": atz.geometry})
 
         # Remove ATZ geometries
@@ -236,7 +239,7 @@ def overlay(args):
         lowest_cta = ctas.iloc[min_ind]
 
         # Skip if base at surface or clearance is too small
-        if lowest_cta["normlower"] == 0 or clearance < 500:
+        if lowest_cta["normlower"] == 0 or clearance < 750:
             continue
 
         # Use slanted glyphs for flight levels, upright for altitude
