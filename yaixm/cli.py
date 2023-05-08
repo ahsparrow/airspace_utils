@@ -190,10 +190,15 @@ def release(args):
 def deploy(args):
     # Copy data files to server
     c = Connection("vps", user="asselect")
-    for f in ["yaixm.json", "openair.txt", "overlay_105.txt", "overlay_195.txt"]:
+    for f in [
+        "yaixm.json",
+        "openair.txt",
+        "overlay_105.txt",
+        "overlay_195.txt",
+        "overlay_atzdz.txt",
+    ]:
         c.put(os.path.join(args.directory, f), "data")
 
     # Restart flask app
     c = Connection("vps", user="ahs")
     c.run("sudo systemctl restart asselect_gunicorn.service")
-
