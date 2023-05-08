@@ -190,6 +190,7 @@ def release(args):
 def deploy(args):
     # Copy data files to server
     c = Connection("vps", user="asselect")
+    c.run("mkdir data_staging")
     for f in [
         "yaixm.json",
         "openair.txt",
@@ -197,7 +198,10 @@ def deploy(args):
         "overlay_195.txt",
         "overlay_atzdz.txt",
     ]:
-        c.put(os.path.join(args.directory, f), "data")
+        c.put(os.path.join(args.directory, f), "data_staging")
+        c.run(f"mv data_staging/{f} data/{f}")
+
+    c.run("rmdir data_staging")
 
     # Restart flask app
     c = Connection("vps", user="ahs")
