@@ -40,7 +40,7 @@ def get_glyphs(font, chars):
         # Polygons for glyph
         mp = MultiPolygon([Polygon(outline.points[s]) for s in slices])
         glyphs["normal"][char] = mp
-        glyphs["slanted"][char] = skew(mp, 20)
+        glyphs["slanted"][char] = skew(mp, 25)
 
     return glyphs
 
