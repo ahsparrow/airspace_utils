@@ -4,10 +4,17 @@ import json
 from math import sqrt
 
 from freetype import Face, FT_LOAD_DEFAULT, FT_LOAD_NO_BITMAP
-from geopandas import GeoDataFrame
+from geopandas import GeoDataFrame, GeoSeries
 import numpy
 import pandas
-from shapely import MultiPoint, MultiPolygon, Point, Polygon, minimum_bounding_radius
+from shapely import (
+    MultiPoint,
+    MultiPolygon,
+    Point,
+    Polygon,
+    minimum_bounding_radius,
+    polygonize,
+)
 from shapely.affinity import scale, skew, translate
 from shapely.ops import polylabel
 from sklearn.cluster import KMeans
@@ -169,75 +176,68 @@ def overlay(args):
     # Create boundary geometry and convert to GeoDataFrame
     df["geometry"] = df["boundary"].apply(lambda x: boundary_polygon(x, resolution=9))
     gdf = GeoDataFrame(df, crs="EPSG:4326")
+    gdf = gdf.to_crs("EPSG:27700")
 
     # Filter CTA, etc. and limit base level
-    cta = gdf[
+    cta_gdf = gdf[
         gdf["type"].isin(["CTA", "CTR", "TMA"])
         & (gdf["normlower"] <= args.max_alt)
         & (gdf["feature_name"] != "BRIZE NORTON CTR")
         & (gdf["rules"].isna() | gdf["rules"].apply(lambda x: x.count("NOTAM") == 0))
     ]
-    cta_geom = GeoDataFrame({"geometry": cta.geometry})
 
-    # Overlay CTA geometries
-    geom = cta_geom[0:1]
-    for i in range(1, len(cta_geom)):
-        geom = geom.overlay(cta_geom[i : i + 1], how="union", keep_geom_type=True)
+    # Create polygons from union of CTA geometries
+    cta_union = cta_gdf.geometry.exterior.unary_union
+    cta_polys = GeoSeries(polygonize(cta_union.geoms), crs="EPSG:27700")
+
+    # Remove slivers between not-quite adjacent airspace
+    cta_polys = cta_polys.buffer(-300).buffer(299)
+
+    # Convert multipolygon into polygons
+    cta_polys = cta_polys.explode(ignore_index=True)
+
+    # Remove empty polygon
+    cta_polys = cta_polys[~cta_polys.is_empty]
+
+    # Remove polygons exterior to CTA
+    cta_polys = cta_polys[
+        [cta_gdf.geometry.contains(p).any() for p in cta_polys.representative_point()]
+    ]
+
+    # Merge to single multipolygon
+    cta_multipoly = MultiPolygon([p for p in cta_polys if not p.is_empty])
 
     # Remove ATZ and DZ geometrys for HG/PG overlay
     if args.atzdz:
         # ATZs (not Odiham) and Brize
-        atz = gdf[
+        atz_gdf = gdf[
             (
                 (gdf["type"] == "ATZ")
                 & ~gdf["feature_name"].isin(["DENHAM", "DERBY", "FAIROAKS", "ODIHAM"])
             )
-            | (gdf["feature_name"] == "BRIZE NORTON CTR")
         ]
-        atz_geom = GeoDataFrame({"geometry": atz.geometry})
-
-        # Remove ATZ geometries
-        for i in range(0, len(atz_geom)):
-            geom = geom.overlay(
-                atz_geom[i : i + 1], how="difference", keep_geom_type=True
-            )
 
         # Dropzones
-        dropzone = gdf[(gdf["localtype"] == "DZ")]
-        dropzone_geom = GeoDataFrame({"geometry": dropzone.geometry})
+        dz_gdf = gdf[(gdf["localtype"] == "DZ")]
 
-        # Remove DZ geometries
-        for i in range(0, len(dropzone_geom)):
-            geom = geom.overlay(
-                dropzone_geom[i : i + 1], how="difference", keep_geom_type=True
-            )
-
-    # Convert to X/Y coordinates
-    cta = cta.to_crs("EPSG:27700")
-    geom = geom.to_crs("EPSG:27700")
-
-    # Remove slivers between not-quite-adjacent bits of airspace
-    geom = geom.geometry.buffer(-300).buffer(300)
-    geom = geom.explode(ignore_index=True)
-    geom = geom[~geom.geometry.is_empty]
+        # Update cta_multipoly by removing ATZs and dropzones
+        cta_multipoly = cta_multipoly.difference(pandas.concat([atz_gdf.geometry, dz_gdf.geometry]).unary_union)
 
     # Split bigger polygons
-    polys = [poly_splitter(p, SPLIT_RADIUS) for p in geom.geometry]
+    polys = [poly_splitter(p, SPLIT_RADIUS) for p in cta_multipoly.geoms]
     polys = [poly for sublist in polys for poly in sublist]
 
-    # Convert multipolygons to polygons and discard anything else
-    geom = GeoDataFrame({"geometry": polys}, crs="EPSG:27700")
-    geom = geom.explode(ignore_index=True)
-    geom = geom[geom.geometry.type == "Polygon"]
+    # Convert any multipolygons to polygons
+    polys = GeoSeries(polys, crs="EPSG:27700").explode(ignore_index=True).geometry
 
     # Get label positions and distance to edge
-    poi, dist = get_position(geom.geometry)
+    poi, dist = get_position(polys)
 
     # Create annotation
     annotation = GeoDataFrame({"geometry": []}, crs="EPSG:27700")
     for pos, clearance in zip(poi, dist):
         # Find lowest airspace at point p
-        ctas = cta.cx[pos.x : pos.x + 1, pos.y : pos.y + 1]
+        ctas = cta_gdf.cx[pos.x : pos.x + 1, pos.y : pos.y + 1]
         min_ind = ctas["normlower"].argmin()
         lowest_cta = ctas.iloc[min_ind]
 
@@ -266,8 +266,7 @@ def overlay(args):
     # Annotate ATZ and DZ for HG/PG overlay
     if args.atzdz:
         # DZ annotation
-        dropzone = dropzone.to_crs("EPSG:27700")
-        for i, dz in dropzone.iterrows():
+        for i, dz in dz_gdf.iterrows():
             pos = dz.geometry.centroid
             clearance = minimum_bounding_radius(dz.geometry)
             txt = annotation_polys(glyphs, pos, clearance, "DZ")
@@ -283,11 +282,10 @@ def overlay(args):
             )
 
         # ATZ annotation
-        atz = atz.to_crs("EPSG:27700")
-        for i, a in atz.iterrows():
+        for i, a in atz_gdf.iterrows():
             pos = a.geometry.centroid
             if not (
-                dropzone.geometry.contains(pos).any()
+                dz_gdf.geometry.contains(pos).any()
                 or a["feature_name"] == "BRIZE NORTON CTR"
             ):
                 clearance = minimum_bounding_radius(a.geometry)
