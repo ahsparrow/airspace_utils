@@ -221,7 +221,9 @@ def overlay(args):
         dz_gdf = gdf[(gdf["localtype"] == "DZ")]
 
         # Update cta_multipoly by removing ATZs and dropzones
-        cta_multipoly = cta_multipoly.difference(pandas.concat([atz_gdf.geometry, dz_gdf.geometry]).unary_union)
+        cta_multipoly = cta_multipoly.difference(
+            pandas.concat([atz_gdf.geometry, dz_gdf.geometry]).unary_union
+        )
 
     # Split bigger polygons
     polys = [poly_splitter(p, SPLIT_RADIUS) for p in cta_multipoly.geoms]
