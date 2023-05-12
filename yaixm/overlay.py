@@ -209,7 +209,7 @@ def overlay(args):
 
     # Remove ATZ and DZ geometrys for HG/PG overlay
     if args.atzdz:
-        # ATZs (not Odiham) and Brize
+        # ATZs (with exceptions)
         atz_gdf = gdf[
             (
                 (gdf["type"] == "ATZ")
@@ -286,10 +286,7 @@ def overlay(args):
         # ATZ annotation
         for i, a in atz_gdf.iterrows():
             pos = a.geometry.centroid
-            if not (
-                dz_gdf.geometry.contains(pos).any()
-                or a["feature_name"] == "BRIZE NORTON CTR"
-            ):
+            if not dz_gdf.geometry.contains(pos).any():
                 clearance = minimum_bounding_radius(a.geometry)
                 txt = annotation_polys(
                     glyphs, pos, clearance, str(a["upper"].split()[0])
