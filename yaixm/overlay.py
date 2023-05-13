@@ -109,7 +109,7 @@ def get_position(polys):
     pos = []
     dist = []
     for p in polys:
-        poi = polylabel(p, tolerance=10)
+        poi = polylabel(p, tolerance=100)
         poi_dist = poi.distance(p.boundary)
 
         centroid = p.centroid
@@ -143,6 +143,9 @@ def cluster_points(out, points, max_size):
 
 # Split polygons into smaller parts
 def poly_splitter(poly, max_size, grid=500):
+    if minimum_bounding_radius(poly) < max_size:
+        return [poly]
+
     # Create array of points inside polygon
     minx, miny, maxx, maxy = poly.bounds
     nx = int((maxx - minx) // grid + 1)
