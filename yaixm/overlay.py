@@ -273,7 +273,7 @@ def overlay(args):
         # DZ annotation
         for i, dz in dz_gdf.iterrows():
             pos = dz.geometry.centroid
-            clearance = minimum_bounding_radius(dz.geometry)
+            clearance = minimum_bounding_radius(dz.geometry) * 0.75
             txt = annotation_polys(glyphs, pos, clearance, "DZ")
 
             data = {
