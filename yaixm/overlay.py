@@ -1,3 +1,4 @@
+from datetime import date
 from importlib.resources import files
 import io
 import json
@@ -88,8 +89,8 @@ def annotation_polys(glyphs, point, clearance, annotation, style="normal"):
 
 
 # Create OpenAir data
-def make_openair(annotation):
-    openair = []
+def make_openair(annotation, hdr):
+    openair = hdr.splitlines()
     for index, row in annotation.iterrows():
         for poly in row["geometry"].geoms:
             openair.append("AC B")
@@ -312,6 +313,7 @@ def overlay(args):
         annotation.to_file(args.debug_file)
 
     # Convert to OpenAir and write to file
-    openair = make_openair(annotation)
+    hdr = f"*\n* Height Overlay {args.max_alt}ALT{' ATZ/DZ' if args.atzdz else ''} ({date.today().isoformat()})\n*\n"
+    openair = make_openair(annotation, hdr)
     with open(args.output_file, "wt") as f:
         f.write(openair)
