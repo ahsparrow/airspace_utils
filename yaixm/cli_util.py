@@ -17,6 +17,8 @@
 
 import math
 
+from pygeodesy.ellipsoidalVincenty import LatLon
+
 from yaixm.util import parse_deg
 
 
@@ -33,7 +35,7 @@ def calc_ils(args):
 
     for d, b in zip(distances, bearings):
         p = centre.destination(d, b)
-        print("- %s" % p.toStr(form="sec", prec=0, sep=" "))
+        print("- %s" % p.toStr(form="sec", prec=0, joined=" "))
 
 
 def calc_stub(args):
@@ -55,8 +57,8 @@ def calc_stub(args):
     p2 = centre.destination(radius, bearing)
 
     print("Inner:")
-    print(p1.toStr(form="sec", prec=0, sep=" "))
-    print(p2.toStr(form="sec", prec=0, sep=" "))
+    print(p1.toStr(form="sec", prec=0, joined=" "))
+    print(p2.toStr(form="sec", prec=0, joined=" "))
 
     # Outer stub
     dist = math.sqrt((radius + length) ** 2 + (width / 2) ** 2)
@@ -69,5 +71,5 @@ def calc_stub(args):
     p2 = centre.destination(dist, bearing)
 
     print("\nOuter:")
-    print(p1.toStr(form="sec", prec=0, sep=" "))
-    print(p2.toStr(form="sec", prec=0, sep=" "))
+    print(p1.toStr(form="sec", prec=0, joined=" "))
+    print(p2.toStr(form="sec", prec=0, joined=" "))
