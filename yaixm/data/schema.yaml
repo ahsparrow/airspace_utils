@@ -96,8 +96,15 @@ definitions:
 
   # Indicates order of aggregation
   seqno: &seqno
-    type: integer
-    minimum: 1
+    oneOf:
+      - type: integer
+        minimum: 1
+
+      - type: string
+        pattern: ^[1-9][0-9]?[A-Z]$
+
+      - type: string
+        pattern: ^[A-Z]$
 
   # Airspace types from AIXM
   type: &type
@@ -219,10 +226,6 @@ definitions:
 
       # Indicates order of aggregation
       seqno: *seqno
-
-      subseq:
-        type: string
-        pattern: ^[A-Z]$
 
       upper:
         type: string
