@@ -75,7 +75,7 @@ Grammer = """
     AIRTYPE: LETTER+
 
     NAME_STRING: LETTER (NAME_CHAR | " ")* NAME_CHAR 
-    NAME_CHAR: (LETTER | DIGIT | "(" | ")" | "/" | "-" | ".")
+    NAME_CHAR: (LETTER | DIGIT | "(" | ")" | "/" | "-" | "." | "'")
 
     ALT: DIGIT+ "ALT"
     FL: "FL" DIGIT+
