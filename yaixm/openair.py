@@ -64,29 +64,32 @@ Grammer = """
 
     ?point: "DP" _WS_INLINE+ lat_lon _NEWLINE
 
-    centre: "V" _WS_INLINE+ "X=" lat_lon _NEWLINE
+    centre: "V" _WS_INLINE+ _CENT lat_lon _NEWLINE
     radius: "DC" _WS_INLINE+ RADIUS _NEWLINE
 
-    dir: "V" _WS_INLINE+ "D=" DIRECTION _NEWLINE
+    dir: "V" _WS_INLINE+ _DIR DIRECTION _NEWLINE
     limits: "DB" _WS_INLINE+ lat_lon "," _WS_INLINE+ lat_lon _NEWLINE
+
+    _CENT.2: "X="
+    _DIR.2: "D="
 
     ?lat_lon: LAT_LON
 
-    AIRTYPE: LETTER+
+    AIRTYPE: LETTER~1..4
 
-    NAME_STRING: LETTER (NAME_CHAR | " ")* NAME_CHAR 
+    NAME_STRING.1: LETTER (NAME_CHAR | " ")~3..40 NAME_CHAR 
     NAME_CHAR: (LETTER | DIGIT | "(" | ")" | "/" | "-" | "." | "'")
 
-    ALT: DIGIT+ "ALT"
-    FL: "FL" DIGIT+
-    SFC: "SFC"
+    ALT.2: DIGIT+ "ALT"
+    FL.2: "FL" DIGIT+
+    SFC.2: "SFC"
 
-    FREQ: DIGIT~3 "." DIGIT~3
+    FREQ.2: DIGIT~3 "." DIGIT~3
 
-    RADIUS: NUMBER
+    RADIUS.1: DIGIT~1..2 ("." DIGIT~1..2)*
     DIRECTION: ("+" | "-")
 
-    LAT_LON: LAT WS_INLINE+ LON
+    LAT_LON.2: LAT WS_INLINE+ LON
     LAT: DIGIT~2 ":" DIGIT~2 ":" DIGIT~2 WS_INLINE+ LAT_HEMI
     LON: DIGIT~3 ":" DIGIT~2 ":" DIGIT~2 WS_INLINE+ LON_HEMI
     LAT_HEMI: ("N" | "S")
@@ -483,7 +486,7 @@ class OpenairTransformer(Transformer):
 
 
 def parse(data):
-    parser = Lark(Grammer)
+    parser = Lark(Grammer, parser="lalr")
     tree = parser.parse(data)
 
     out = OpenairTransformer().transform(tree)
