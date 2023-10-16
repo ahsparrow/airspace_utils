@@ -50,11 +50,11 @@ Grammer = """
 
     feature: airtype airname (freq? upper lower | freq? lower upper | upper lower freq | lower upper freq) boundary
 
-    airtype: "AC" _WS_INLINE+ AIRTYPE _NEWLINE
-    airname: "AN" _WS_INLINE+ NAME_STRING _NEWLINE
-    lower: "AL" _WS_INLINE + (ALT | FL | SFC) _NEWLINE
-    upper: "AH" _WS_INLINE+ (ALT | FL) _NEWLINE
-    freq: "AF" _WS_INLINE+ FREQ _NEWLINE
+    airtype: "AC" AIRTYPE _NEWLINE
+    airname: "AN" NAME_STRING _NEWLINE
+    lower: "AL" (ALT | FL | SFC) _NEWLINE
+    upper: "AH" (ALT | FL) _NEWLINE
+    freq: "AF" FREQ _NEWLINE
 
     boundary: (line | circle | arc)+
 
@@ -62,20 +62,20 @@ Grammer = """
     circle: centre radius
     arc: dir centre limits
 
-    ?point: "DP" _WS_INLINE+ lat_lon _NEWLINE
+    ?point: "DP" lat_lon _NEWLINE
 
-    centre: "V" _WS_INLINE+ _CENT lat_lon _NEWLINE
-    radius: "DC" _WS_INLINE+ RADIUS _NEWLINE
+    centre: "V" _CENT lat_lon _NEWLINE
+    radius: "DC" RADIUS _NEWLINE
 
-    dir: "V" _WS_INLINE+ _DIR DIRECTION _NEWLINE
-    limits: "DB" _WS_INLINE+ lat_lon "," _WS_INLINE+ lat_lon _NEWLINE
+    dir: "V" _DIR DIRECTION _NEWLINE
+    limits: "DB" lat_lon "," lat_lon _NEWLINE
 
-    _CENT.2: "X="
-    _DIR.2: "D="
+    _CENT.3: "X="
+    _DIR.3: "D="
 
     ?lat_lon: LAT_LON
 
-    AIRTYPE.1: LETTER~1..4
+    AIRTYPE.2: /\\b(A|C|D|E|F|G|P|Q|R|W|CTR|MATZ|OTHER|RMZ|TMZ)\\b/
 
     NAME_STRING.1: LETTER (NAME_CHAR | " ")~2..40 NAME_CHAR 
     NAME_CHAR: (LETTER | DIGIT | "(" | ")" | "/" | "-" | "." | "'")
@@ -89,23 +89,23 @@ Grammer = """
     RADIUS.1: DIGIT~1..2 ("." DIGIT~1..2)*
     DIRECTION: ("+" | "-")
 
-    LAT_LON.2: LAT WS_INLINE+ LON
-    LAT: DIGIT~2 ":" DIGIT~2 ":" DIGIT~2 WS_INLINE+ LAT_HEMI
-    LON: DIGIT~3 ":" DIGIT~2 ":" DIGIT~2 WS_INLINE+ LON_HEMI
+    LAT_LON.2: LAT " " LON
+    LAT: DIGIT~2 ":" DIGIT~2 ":" DIGIT~2 " " LAT_HEMI
+    LON: DIGIT~3 ":" DIGIT~2 ":" DIGIT~2 " " LON_HEMI
     LAT_HEMI: ("N" | "S")
     LON_HEMI: ("E" | "W")
 
     _NEWLINE: NEWLINE
-    _WS_INLINE: WS_INLINE
 
     COMMENT: /\*[^\\n]*/ NEWLINE
     %ignore COMMENT
+
+    %ignore " "
 
     %import common.DIGIT
     %import common.LETTER
     %import common.NEWLINE
     %import common.NUMBER
-    %import common.WS_INLINE
 """
 
 
