@@ -343,9 +343,10 @@ def openair_generator(
     airspace = merge_loa(airspace, loa_data)
 
     # Add RATs
-    airspace = pandas.concat(
-        [airspace, rats[rats["feature_name"].map(lambda x: x in rat_names)]]
-    )
+    if not rats.empty:
+        airspace = pandas.concat(
+            [airspace, rats[rats["feature_name"].map(lambda x: x in rat_names)]]
+        )
 
     # Add obstacles
     if types.get("obstacle"):
