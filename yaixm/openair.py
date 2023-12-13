@@ -75,7 +75,7 @@ Grammer = """
 
     ?lat_lon: LAT_LON
 
-    AIRTYPE.2: /\\b(A|C|D|E|F|G|P|Q|R|W|CTR|MATZ|OTHER|RMZ|TMZ)\\b/
+    AIRTYPE.2: /\\b(A|B|C|D|E|F|G|P|Q|R|W|CTR|MATZ|OTHER|RMZ|TMZ)\\b/
 
     NAME_STRING.1: LETTER (NAME_CHAR | " ")~2..40 NAME_CHAR 
     NAME_CHAR: (LETTER | DIGIT | "(" | ")" | "/" | "-" | "." | "'")
