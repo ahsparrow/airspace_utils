@@ -33,7 +33,7 @@ def load_airspace(data):
             "name": volume.get("name"),
             "normlower": normlevel(volume["lower"]),
             "rules": ",".join(feature.get("rules", []) + volume.get("rules", [])),
-            "seqno": str(s) if (s := volume.get("seqno")) else "ABCDEFGHIJKLM"[n] if len(feature["geometry"]) > 1 else None,
+            "seq": s if (s := volume.get("seq")) else "ABCDEFGHIJKLM"[n] if len(feature["geometry"]) > 1 else None,
             "type": feature["type"],
             "upper": volume["upper"],
         }

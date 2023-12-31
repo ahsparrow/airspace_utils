@@ -54,7 +54,7 @@ PPRINT_PROP_LIST = [
     "add",
     "replace",
     "id",
-    "seqno",
+    "seq",
     "upper",
     "lower",
     "class",
@@ -149,14 +149,14 @@ def merge_loa(airspace, loas):
         if feature is None:
             continue
 
-        # Update seqno, e.g. 12 -> 12A, 12B, etc
-        seqno = volume.get("seqno")
-        if seqno:
+        # Update seq, e.g. 12 -> 12A, 12B, etc
+        seq = volume.get("seq")
+        if seq:
             if len(replace["geometry"]) > 1:
                 for n, g in enumerate(replace["geometry"]):
-                    g["seqno"] = "%s%s" % (str(seqno), ascii_uppercase[n])
+                    g["seq"] = "%s%s" % (str(seq), ascii_uppercase[n])
             else:
-                replace["geometry"][0]["seqno"] = seqno
+                replace["geometry"][0]["seq"] = seq
 
         # Delete old volume
         feature["geometry"].remove(volume)

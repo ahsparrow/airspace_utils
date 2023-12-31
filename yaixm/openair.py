@@ -109,7 +109,7 @@ Grammer = """
 """
 
 
-def namer(volume, append_freq, append_seqno):
+def namer(volume, append_freq, append_seq):
     if volume["name"]:
         name = volume["name"]
     else:
@@ -127,8 +127,8 @@ def namer(volume, append_freq, append_seqno):
         elif "RAZ" in volume["rules"]:
             name += " " + "RAZ"
 
-        if append_seqno and (seqno := volume["seqno"]):
-            name += f"-{seqno}"
+        if append_seq and (seq := volume["seq"]):
+            name += f"-{seq}"
 
         qualifiers = [q for q in ["SI", "NOTAM"] if q in volume["rules"]]
         if qualifiers:

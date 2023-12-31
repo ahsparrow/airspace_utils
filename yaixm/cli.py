@@ -134,7 +134,7 @@ def release(args):
 
     # Append release header
     header = {
-        "schema_version": 1,
+        "schema_version": 2,
         "airac_date": get_airac_date(args.offset),
         "timestamp": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
     }
