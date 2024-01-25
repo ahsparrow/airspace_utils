@@ -21,6 +21,5 @@ To generate the ASSelect overlay files (takes a few minutes)
     ./run.py overlay --max_alt 19400 ../airspace/airspace.yaml output/overlay_195.txt
     ./run.py overlay --max_alt 10400 --atzdz ../airspace/airspace.yaml output/overlay_atzdz.txt
 
-To deploy new airspace files to asselect
-
-    ./run deploy output
+To deploy new airspace files copy files from output directory to
+../asselect3/data and follow instructions to deploy asselect3.
