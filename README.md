@@ -1,7 +1,7 @@
 ## YAIXM
 
 Utilities for processing YAIXM airspace data (see
-[GitHub](https://github.com/ahsparrow/airspace).
+[GitHub](https://github.com/ahsparrow/airspace)).
 
 ### Utilities
 
@@ -22,4 +22,4 @@ To generate the ASSelect overlay files (takes a few minutes)
     ./run.py overlay --max_alt 10400 --atzdz ../airspace/airspace.yaml output/overlay_atzdz.txt
 
 To deploy new airspace files copy files from output directory to
-../asselect3/data and follow instructions to deploy asselect3.
+`../asselect3/data` and follow instructions to deploy asselect3.
