@@ -79,7 +79,7 @@ def gis(args):
         if args.airspace_file.endswith("yaml"):
             # YAML input
             data = yaml.safe_load(f)
-            airspace = load_airspace(data["airspace"])
+            airspace = load_airspace(list(data.values())[0])
         else:
             # Openair input
             airspace = pandas.DataFrame(parse_openair(f.read()))
