@@ -80,7 +80,7 @@ Grammer = """
     NAME_STRING.1: LETTER (NAME_CHAR | " ")~1..40 NAME_CHAR
     NAME_CHAR: (LETTER | DIGIT | "(" | ")" | "/" | "-" | "." | "'")
 
-    ALT.2: DIGIT+ "ALT"
+    ALT.2: DIGIT+ " ft"
     FL.2: "FL" DIGIT+
     SFC.2: "SFC"
 
@@ -229,12 +229,7 @@ def make_filter(types, max_level, home, wave):
 
 
 def level(level_str):
-    if level_str.endswith("ft"):
-        # Altitude
-        return level_str[:-3] + "ALT"
-    else:
-        # SFC or FL
-        return level_str
+    return level_str
 
 
 def latlon(latlon_str):
