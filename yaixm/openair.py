@@ -86,7 +86,7 @@ Grammer = """
 
     FREQ.2: DIGIT~3 "." DIGIT~3
 
-    RADIUS.1: DIGIT~1..2 ("." DIGIT~1..2)*
+    RADIUS.1: DIGIT~1..2 ("." DIGIT~1..3)*
     DIRECTION: ("+" | "-")
 
     LAT_LON.2: LAT " " LON
