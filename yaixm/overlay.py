@@ -217,7 +217,21 @@ def overlay(args):
         atz_gdf = gdf[
             (
                 (gdf["type"] == "ATZ")
-                & ~gdf["feature_name"].isin(["DENHAM", "DERBY", "FAIROAKS", "ODIHAM"])
+                & ~gdf["feature_name"].isin(
+                    [
+                        "BARTON",
+                        "BIGGIN HILL",
+                        "DENHAM",
+                        "DERBY",
+                        "ELSTREE",
+                        "FAIROAKS",
+                        "ODIHAM",
+                        "REDHILL",
+                        "ROCHESTER",
+                        "STAPLEFORD",
+                        "WHITE WALTHAM",
+                    ]
+                )
             )
         ]
 
