@@ -21,7 +21,6 @@ import os
 import subprocess
 import sys
 
-from fabric import Connection
 from geopandas import GeoDataFrame
 import pandas
 import yaml
@@ -185,24 +184,3 @@ def release(args):
         with open(args.openair_file, "wt", newline="\r\n") as f:
             f.write(HEADER.format(airac_date=header["airac_date"][:10], commit=commit))
             f.write(default_openair(data))
-
-
-def deploy(args):
-    # Copy data files to server
-    c = Connection("vps", user="asselect")
-    c.run("mkdir data_staging")
-    for f in [
-        "yaixm.json",
-        "openair.txt",
-        "overlay_105.txt",
-        "overlay_195.txt",
-        "overlay_atzdz.txt",
-    ]:
-        c.put(os.path.join(args.directory, f), "data_staging")
-        c.run(f"mv data_staging/{f} data/{f}")
-
-    c.run("rmdir data_staging")
-
-    # Restart flask app
-    c = Connection("vps", user="ahs")
-    c.run("sudo systemctl restart asselect_gunicorn.service")
