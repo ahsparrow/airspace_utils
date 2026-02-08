@@ -54,7 +54,7 @@ def check(args):
     # Validate and write any errors to stderr
     e = validate(airspace)
     if e:
-        print(e.message, file=sys.stderr)
+        print(e, file=sys.stderr)
         sys.exit(1)
 
 
