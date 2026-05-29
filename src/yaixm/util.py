@@ -17,6 +17,7 @@
 
 from copy import deepcopy
 import datetime
+from importlib.resources import files, as_file
 import json as _json
 import logging
 import math
@@ -24,7 +25,7 @@ import re
 from string import ascii_uppercase
 
 import jsonschema
-import pkg_resources
+import yaixm
 import yaml
 
 try:
@@ -80,7 +81,7 @@ PPRINT_PROP_LIST = [
 
 # Latitude/longitude regex
 # Pattern is: [D]DDMMSS[.s[s[s]]]H
-DMS_PATTERN = "(?P<d>[0-9]{2}|[01][0-9]{2})(?P<m>[0-5][0-9])(?P<s>[0-5][0-9](\.[0-9]{1,3})?)(?P<h>[NESW])"
+DMS_PATTERN = "(?P<d>[0-9]{2}|[01][0-9]{2})(?P<m>[0-5][0-9])(?P<s>[0-5][0-9](\\.[0-9]{1,3})?)(?P<h>[NESW])"
 DMS_RE = re.compile(DMS_PATTERN)
 
 # Conversion factor
@@ -88,11 +89,14 @@ NM_TO_DEGREES = 1 / 60
 
 
 # Check airspace against schema
-def validate(yaixm):
-    schema = yaml.safe_load(pkg_resources.resource_string(__name__, "data/schema.yaml"))
+def validate(data):
+    source = files(yaixm).joinpath("data/schema.yaml")
+    with as_file(source) as path:
+        with path.open() as f:
+            schema = yaml.safe_load(f)
 
     try:
-        jsonschema.validate(yaixm, schema, format_checker=jsonschema.FormatChecker())
+        jsonschema.validate(data, schema, format_checker=jsonschema.FormatChecker())
     except jsonschema.exceptions.ValidationError as e:
         return e
 
