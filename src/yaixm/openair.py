@@ -333,6 +333,9 @@ def openair_generator(
     service = yaixm.yaixm.load_service(data["service"])
     rats = yaixm.yaixm.load_airspace(data["rat"])
 
+    # Hack to avoid problems with NaN
+    airspace.fillna(None, inplace=True, axis=1)
+
     # Merge selected LOAs
     loa_data = list(filter(lambda x: x["name"] in loa_names, data["loa"]))
     airspace = merge_loa(airspace, loa_data)
