@@ -97,7 +97,7 @@ Grammer = """
 
     _NEWLINE: NEWLINE
 
-    COMMENT: /\*[^\\n]*/ NEWLINE
+    COMMENT: /\\*[^\\n]*/ NEWLINE
     %ignore COMMENT
 
     %ignore " "
