@@ -1,12 +1,10 @@
 from datetime import date
 from importlib.resources import files
-import io
-import json
 from math import sqrt
 
 from freetype import Face, FT_LOAD_DEFAULT, FT_LOAD_NO_BITMAP
 from geopandas import GeoDataFrame, GeoSeries
-import numpy
+import numpy as np
 import pandas
 from shapely import (
     MultiPoint,
@@ -135,10 +133,10 @@ def cluster_points(out, points, max_size):
         kmeans = KMeans(n_clusters=2, random_state=0, n_init="auto")
         cluster = kmeans.fit_predict([(p.x, p.y) for p in points.geoms])
 
-        c1 = MultiPoint(numpy.array(points.geoms)[cluster == 0])
+        c1 = MultiPoint(np.array(points.geoms)[cluster == 0])
         cluster_points(out, c1, max_size)
 
-        c2 = MultiPoint(numpy.array(points.geoms)[cluster == 1])
+        c2 = MultiPoint(np.array(points.geoms)[cluster == 1])
         cluster_points(out, c2, max_size)
 
 
@@ -275,7 +273,11 @@ def overlay(args):
 
         data = {
             "geometry": txt,
-            "name": [lowest_cta["name"] or lowest_cta["feature_name"]],
+            "name": [
+                lowest_cta["name"]
+                if not np.isnan(lowest_cta["name"])
+                else lowest_cta["feature_name"]
+            ],
             "lower": [lowest_cta["lower"]],
             "upper": [lowest_cta["upper"]],
         }
