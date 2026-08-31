@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 echo "Generating overlays..."
-python run.py overlay --max_alt 10400 ../airspace/airspace.yaml output/overlay_105.txt &
-python run.py overlay --max_alt 19400 ../airspace/airspace.yaml output/overlay_195.txt &
-python run.py overlay --max_alt 10400 ../airspace/airspace.yaml output/overlay_atzdz.txt --atzdz &
+uv run cli overlay --max_alt 10400 ../airspace/airspace.yaml output/overlay_105.txt &
+uv run cli overlay --max_alt 19400 ../airspace/airspace.yaml output/overlay_195.txt &
+uv run cli overlay --max_alt 10400 ../airspace/airspace.yaml output/overlay_atzdz.txt --atzdz &
 
 wait -n
 echo "Done one"
